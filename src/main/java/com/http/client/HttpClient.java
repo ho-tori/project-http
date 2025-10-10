@@ -1,5 +1,7 @@
 package com.http.client;
 
+import com.http.common.*;
+
 public class HttpClient {
 //    主要的HTTP客户端实现，负责发送请求和接收响应
 //
