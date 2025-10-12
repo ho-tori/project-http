@@ -34,6 +34,56 @@ public class HttpResponse {
         this.body = body;
     }
 
+
+    public static HttpResponse parse(String responseString) {
+        HttpResponse response = new HttpResponse();
+        String[] lines = responseString.split("\r\n");
+
+        if (lines.length == 0) {
+            return null;
+        }
+
+        // 解析状态行
+        String[] requestLine = lines[0].split(" ");
+        if (requestLine.length >= 3) {
+            response.setVersion(requestLine[0]);
+            response.setStatusCode(Integer.parseInt(requestLine[1]));
+            response.setReasonPhrase(requestLine[2]);
+        }
+
+        // 解析响应头
+        int bodyStartIndex = -1;
+        for (int i = 1; i < lines.length; i++) {
+            if (lines[i].trim().isEmpty()) {
+                bodyStartIndex = i + 1;
+                break;
+            }//如果有空行，则请求头结束
+
+            String[] headerParts = lines[i].split(": ", 2);
+            if (headerParts.length == 2) {
+                response.addHeader(headerParts[0], headerParts[1]);
+            }
+        }
+
+        // 解析请求体
+        if (bodyStartIndex != -1 && bodyStartIndex < lines.length) {
+            StringBuilder bodyBuilder = new StringBuilder();
+            for (int i = bodyStartIndex; i < lines.length; i++) {
+                bodyBuilder.append(lines[i]);
+                if (i < lines.length - 1) {
+                    bodyBuilder.append("\r\n");
+                }
+            }
+            response.setBody(bodyBuilder.toString());
+        }
+
+        return response;
+    }
+    public void addHeader(String name, String value) {
+        headers.put(name, value);
+    }
+
+
     //getter setter
     public String getVersion() { return version; }
     public void setVersion(String version) { this.version = version; }
