@@ -3,6 +3,8 @@ package com.http.common;
  * HTTP状态码常量
  */
 public class HttpStatus {
+    //定义HTTP状态码常量
+
     // 成功状态码
     public static final int OK = 200;
     // 重定向状态码
