@@ -90,8 +90,6 @@ public class HttpRequest {
         headers.put(name, value);
     }
 
-
-
     //getter setter
     public String getMethod() { return method; }
     public void setMethod(String method) { this.method = method; }
