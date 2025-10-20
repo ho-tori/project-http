@@ -30,6 +30,9 @@ public class MimeType {
         // 从Map中查找对应的MIME类型，如果找不到就用默认类型
         return MIME_TYPES.getOrDefault(extension, "application/octet-stream");
     }
+    public static boolean isTextType(String mimeType) {
+        return mimeType.startsWith("text/");
+    }
 //    public static void main(String[] args) {
 //        System.out.println(getMimeType("index.html")); // 输出: text/html
 //        System.out.println(getMimeType("photo.jpg"));  // 输出: image/jpeg
