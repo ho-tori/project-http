@@ -40,6 +40,9 @@ public class HttpRequest {
         this.headers = (headers != null) ? headers : new HashMap<>();//防止传入null
         this.body = body;
     }
+    public HttpRequest(String method, String uri){
+        this(method, uri, "HTTP/1.1", null, null);
+    }
 
     public static HttpRequest parse(String requestString) {
         HttpRequest request = new HttpRequest();
