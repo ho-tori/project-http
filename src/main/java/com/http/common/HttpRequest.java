@@ -39,6 +39,9 @@ public class HttpRequest {
         this.headers = (headers != null) ? headers : new HashMap<>();//防止传入null
         this.body = body;
     }
+    public HttpRequest(String method, String uri){
+        this(method, uri, "HTTP/1.1", null, null);
+    }
 
     //为了让服务器更自然地工作（直接从 socket 输入流中读取），给这个类加一个新的构造函数
     public HttpRequest(InputStream input) throws IOException {

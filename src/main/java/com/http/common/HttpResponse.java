@@ -82,6 +82,9 @@ public class HttpResponse {
     public void addHeader(String name, String value) {
         headers.put(name, value);
     }
+    public String getHeader(String name) {
+        return headers.get(name);
+    }
 
 
     //getter setter
