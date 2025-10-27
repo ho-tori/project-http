@@ -27,13 +27,13 @@ public class HttpRequest {
 
     private Map<String, String> headers; //请求头
 
-    private String body; //POST 请求体
+    private byte[] body; //POST 请求体
 
     //构造
     public HttpRequest() {
         headers = new HashMap<>();
     }
-    public HttpRequest(String method, String uri, String version, Map<String, String> headers, String body) {
+    public HttpRequest(String method, String uri, String version, Map<String, String> headers, byte[] body) {
         this.method = method;
         this.uri = uri;
         this.version = version;
@@ -83,7 +83,7 @@ public class HttpRequest {
                     bodyBuilder.append("\r\n");
                 }
             }
-            request.setBody(bodyBuilder.toString());
+            request.setBody(bodyBuilder.toString().getBytes());
         }
 
         return request;
@@ -106,8 +106,8 @@ public class HttpRequest {
     public Map<String, String> getHeaders() { return headers; }
     public void setHeaders(Map<String, String> headers) { this.headers = headers; }
 
-    public String getBody() { return body; }
-    public void setBody(String body) { this.body = body; }
+    public byte[] getBody() { return body; }
+    public void setBody(byte[] body) { this.body = body; }
 }
 
 

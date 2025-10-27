@@ -80,12 +80,12 @@ public class HttpClient {
     /**
      * 发送POST请求
      */
-    public HttpResponse post(String uri, String body) throws IOException {
+    public HttpResponse post(String uri, byte[] body) throws IOException {
         HttpRequest request = new HttpRequest("POST", uri);
         request.addHeader("Host", host + ":" + port);
         request.addHeader("User-Agent", "Simple-HTTP-Client/1.0");
         request.addHeader("Content-Type", "application/json");
-        request.addHeader("Content-Length", String.valueOf(body.getBytes().length));
+        request.addHeader("Content-Length", String.valueOf(body.length));
         request.addHeader("Connection", "close");
         request.setBody(body);
 
@@ -154,7 +154,7 @@ public class HttpClient {
             if (contentType != null && MimeType.isTextType(contentType)) {
                 System.out.println(new String(response.getBody()));
             } else {
-                System.out.println("[二进制内容，长度: " + response.getBody().getBytes(StandardCharsets.UTF_8).length + " 字节]");
+                System.out.println("[二进制内容，长度: " + response.getBody().length + " 字节]");
             }
         } else {
             System.out.println("[无响应体]");
@@ -171,11 +171,14 @@ public class HttpClient {
             System.out.println("简单HTTP客户端");
             System.out.println("连接到服务器: " + host + ":" + port);
             System.out.println("支持的命令:");
-            System.out.println("  GET <uri> - 发送GET请求");
-            System.out.println("  POST <uri> <body> - 发送POST请求");
-            System.out.println("  REGISTER <username> <password> - 用户注册");
-            System.out.println("  LOGIN <username> <password> - 用户登录");
-            System.out.println("  QUIT - 退出");
+            System.out.println("  GET <uri>                        - 发送GET请求");
+            System.out.println("  POST <uri> <text|file_path>      - 发送POST请求，可直接发送文本或上传文件");
+            System.out.println("     示例:");
+            System.out.println("        POST /api/upload hello=world      (发送文本数据)");
+            System.out.println("        POST /api/upload ./data/test.txt  (上传文件)");
+            System.out.println("  REGISTER <username> <password>   - 用户注册");
+            System.out.println("  LOGIN <username> <password>      - 用户登录");
+            System.out.println("  QUIT                             - 退出客户端");
             System.out.println();
 
             while (true) {
@@ -201,11 +204,38 @@ public class HttpClient {
 
                         case "POST":
                             if (parts.length < 3) {
-                                System.out.println("用法: POST <uri> <body>");
+                                System.out.println("用法: POST <uri> <body或文件路径>");
                                 break;
                             }
-                            String body = String.join(" ", java.util.Arrays.copyOfRange(parts, 2, parts.length));
-                            handlePostCommand(parts[1], body);
+
+                            String uri = parts[1];
+                            String bodyInput = String.join(" ", java.util.Arrays.copyOfRange(parts, 2, parts.length));
+                            byte[] bodyBytes = null;
+
+                            java.io.File file = new java.io.File(bodyInput);
+                            if (file.exists() && file.isFile()) {
+                                // 🌸 文件上传模式
+                                try (java.io.FileInputStream fis = new java.io.FileInputStream(file);
+                                     java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream()) {
+
+                                    byte[] tmp = new byte[4096];
+                                    int len;
+                                    while ((len = fis.read(tmp)) != -1) {
+                                        buffer.write(tmp, 0, len);
+                                    }
+                                    bodyBytes = buffer.toByteArray();
+                                    System.out.println("🌸 检测到文件上传: " + file.getName() + " (" + bodyBytes.length + " bytes)");
+                                } catch (Exception e) {
+                                    System.err.println("读取文件失败: " + e.getMessage());
+                                    break;
+                                }
+                            } else {
+                                // 🌸 普通文本 POST
+                                bodyBytes = bodyInput.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                                System.out.println("🌸 使用文本 POST 请求: " + bodyInput);
+                            }
+
+                            handlePostCommand(uri, bodyBytes);
                             break;
 
                         case "REGISTER":
@@ -245,20 +275,20 @@ public class HttpClient {
         displayResponse(response);
     }
 
-    private void handlePostCommand(String uri, String body) throws IOException {
+    private void handlePostCommand(String uri, byte[] body) throws IOException {
         HttpResponse response = post(uri, body);
         displayResponse(response);
     }
 
     private void handleRegisterCommand(String username, String password) throws IOException {
         String body = "{\"username\": \"" + username + "\", \"password\": \"" + password + "\"}";
-        HttpResponse response = post("/api/register", body);
+        HttpResponse response = post("/api/register", body.getBytes());
         displayResponse(response);
     }
 
     private void handleLoginCommand(String username, String password) throws IOException {
         String body = "{\"username\": \"" + username + "\", \"password\": \"" + password + "\"}";
-        HttpResponse response = post("/api/login", body);
+        HttpResponse response = post("/api/login", body.getBytes());
         displayResponse(response);
     }
 
