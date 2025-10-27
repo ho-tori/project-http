@@ -28,10 +28,12 @@ public class ConnectionHandler implements Runnable{
         ) {
             // 1️⃣ 解析请求
             HttpRequest request = new HttpRequest(input);
-            System.out.println("📩 收到请求: " + request.getMethod() + " " + request.getUri());
+            String uri = request.getUri();
+            System.out.println("📩 收到请求: " + request.getMethod() + " " + uri);
 
-            // 2️⃣ 创建响应
+            // 2️⃣ 目前仅GET请求，构造响应
             HttpResponse response = new HttpResponse();
+            response.setVersion("HTTP/1.1");
             response.setStatusCode(200);
             response.setReasonPhrase("OK");
             response.addHeader("Content-Type", "text/html; charset=UTF-8");
