@@ -24,7 +24,6 @@ public class HttpRequest {
     private String method; //请求方法（GET、POST等）
     private String uri; //请求URI
     private String version; //HTTP版本
-
     private Map<String, String> headers; //请求头
 
     private byte[] body; //POST 请求体
