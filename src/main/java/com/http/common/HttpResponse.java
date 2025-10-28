@@ -80,7 +80,7 @@ public class HttpResponse {
                 bodyBuilder.append(lines[i]);
                 if (i < lines.length - 1) bodyBuilder.append("\r\n");
             }
-            response.setBody(bodyBuilder.toString());
+            response.setBody(bodyBuilder.toString().getBytes());
         }
 
         return response;

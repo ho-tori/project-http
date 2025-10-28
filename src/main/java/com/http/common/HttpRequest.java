@@ -25,14 +25,14 @@ public class HttpRequest {
     private String uri; //请求URI
     private String version; //HTTP版本
     private Map<String, String> headers; //请求头
-    private String body; //POST 请求体
-    //???body用String合适吗?
+
+    private byte[] body; //POST 请求体
 
     //构造
     public HttpRequest() {
         headers = new HashMap<>();
     }
-    public HttpRequest(String method, String uri, String version, Map<String, String> headers, String body) {
+    public HttpRequest(String method, String uri, String version, Map<String, String> headers, byte[] body) {
         this.method = method;
         this.uri = uri;
         this.version = version;
@@ -43,47 +43,6 @@ public class HttpRequest {
         this(method, uri, "HTTP/1.1", null, null);
     }
 
-    //为了让服务器更自然地工作（直接从 socket 输入流中读取），给这个类加一个新的构造函数
-    public HttpRequest(InputStream input) throws IOException {
-        this.headers = new HashMap<>();
-
-        BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-        String line = reader.readLine();
-
-        if (line == null || line.isEmpty()) {
-            return;
-        }
-
-        // 1️⃣ 解析请求行
-        String[] parts = line.split(" ");
-        if (parts.length >= 3) {
-            this.method = parts[0];
-            this.uri = parts[1];
-            this.version = parts[2];
-        }
-
-        // 2️⃣ 解析请求头
-        while ((line = reader.readLine()) != null && !line.isEmpty()) {
-            String[] headerParts = line.split(": ", 2);
-            if (headerParts.length == 2) {
-                headers.put(headerParts[0], headerParts[1]);
-            }
-        }
-
-        // 3️⃣ 如果是POST，就读取body
-        if ("POST".equalsIgnoreCase(method)) {
-            String contentLengthStr = headers.get("Content-Length");
-            if (contentLengthStr != null) {
-                int contentLength = Integer.parseInt(contentLengthStr);
-                char[] bodyChars = new char[contentLength];
-                reader.read(bodyChars);
-                this.body = new String(bodyChars);
-            }
-        }
-    }
-
-
-    //工具方法：从字符串String解析HTTP请求报文
     public static HttpRequest parse(String requestString) {
         HttpRequest request = new HttpRequest();
         String[] lines = requestString.split("\r\n");
@@ -123,7 +82,7 @@ public class HttpRequest {
                     bodyBuilder.append("\r\n");
                 }
             }
-            request.setBody(bodyBuilder.toString());
+            request.setBody(bodyBuilder.toString().getBytes());
         }
 
         return request;
@@ -146,8 +105,8 @@ public class HttpRequest {
     public Map<String, String> getHeaders() { return headers; }
     public void setHeaders(Map<String, String> headers) { this.headers = headers; }
 
-    public String getBody() { return body; }
-    public void setBody(String body) { this.body = body; }
+    public byte[] getBody() { return body; }
+    public void setBody(byte[] body) { this.body = body; }
 }
 
 
