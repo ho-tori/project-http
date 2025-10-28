@@ -1,10 +1,219 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lavender Haven · 首页</title>
+  <style>
+    :root {
+      --bg: #f5f1fb;
+      --bg-grad-1: #f7f2ff;
+      --bg-grad-2: #ece2ff;
+      --card: #ffffff;
+      --card-soft: #fbf8ff;
+      --text: #3f2b56;
+      --muted: #7b6b8e;
+      --accent: #a78bfa; /* 淡紫 */
+      --accent-2: #c4b5fd;
+      --accent-3: #d8ccff;
+      --shadow: 0 10px 25px rgba(167, 139, 250, .18);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; color: var(--text); background:
+      radial-gradient(1200px 600px at 10% 0%, var(--bg-grad-2), transparent 50%),
+      radial-gradient(800px 400px at 90% 10%, var(--bg-grad-1), transparent 50%),
+      linear-gradient(180deg, var(--bg), var(--bg));
+      font: 16px/1.65 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .shell {
+      max-width: 1200px; margin: 0 auto; padding: 28px 20px 44px;
+    }
+    header {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      width: 40px; height: 40px; border-radius: 12px; background:
+      conic-gradient(from 180deg at 50% 50%, #a78bfa 0deg, #c4b5fd 150deg, #d8ccff 270deg, #a78bfa 360deg);
+      box-shadow: var(--shadow);
+    }
+    .brand h1 { margin: 0; font-size: 20px; letter-spacing: .5px; }
+    nav { display: flex; gap: 8px; }
+    .nav-btn {
+      padding: 10px 14px; border-radius: 12px; background: var(--card-soft); border: 1px solid #eee; color: var(--muted);
+    }
+    .nav-btn:hover { background: #f3edff; color: var(--text); }
+
+    .hero {
+      display: grid; grid-template-columns: 1.2fr .8fr; gap: 22px; align-items: center; margin: 10px 0 24px;
+    }
+    .hero-card {
+      border-radius: 18px; background: var(--card); box-shadow: var(--shadow); padding: 24px; position: relative; overflow: hidden;
+    }
+    .hero h2 { margin: 0 0 10px; font-size: 28px; }
+    .hero p { margin: 0; color: var(--muted); }
+    .badge {
+      position: absolute; right: 18px; top: 18px; padding: 8px 12px; border-radius: 999px; background: var(--accent-3); color: var(--text); font-weight: 600; font-size: 12px;
+    }
+    .stat {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 16px;
+    }
+    .stat .card { padding: 16px; border-radius: 14px; background: var(--card-soft); border: 1px solid #eee; }
+    .stat .num { font-size: 22px; font-weight: 700; color: var(--accent); }
+
+    .grid {
+      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 24px;
+    }
+    .card {
+      border-radius: 16px; background: var(--card); box-shadow: var(--shadow); overflow: hidden; border: 1px solid #f0eef7;
+      display: flex; flex-direction: column; min-height: 210px;
+    }
+    .thumb { height: 92px; background:
+      linear-gradient(120deg, #ede7ff, #f7f2ff 45%, #eee6ff 65%, #f6efff 100%);
+    }
+    .content { padding: 16px; }
+    .title { font-size: 16px; margin: 0 0 8px; }
+    .desc { color: var(--muted); margin: 0 0 12px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+    .tag { padding: 6px 10px; border-radius: 999px; background: var(--accent-3); color: var(--text); font-size: 12px; }
+
+    .cta {
+      display: flex; gap: 10px; margin-top: 24px;
+    }
+    .btn-primary {
+      padding: 12px 16px; border-radius: 12px; background: var(--accent); color: #fff; border: none; box-shadow: var(--shadow);
+    }
+    .btn-secondary {
+      padding: 12px 16px; border-radius: 12px; background: var(--card-soft); color: var(--text); border: 1px solid #eee;
+    }
+    .btn-primary:hover { filter: brightness(1.05); }
+    .btn-secondary:hover { background: #f3edff; }
+
+    footer { margin-top: 32px; color: var(--muted); text-align: center; }
+    @media (max-width: 860px) {
+      .hero { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+  </style>
 </head>
 <body>
+  <div class="shell">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <h1>Lavender Haven</h1>
+      </div>
+      <nav>
+        <a class="nav-btn" href="/">首页</a>
+        <a class="nav-btn" href="/new-page.html">更多卡片</a>
+      </nav>
+    </header>
 
+    <section class="hero">
+      <div class="hero-card">
+        <span class="badge">✨ 淡紫 · 柔和 · 多卡片</span>
+        <h2>欢迎来到淡紫色的卡片世界</h2>
+        <p>优雅的渐变背景，轻盈的阴影，丰富的卡片布局，让信息展示既美观又清晰。</p>
+        <div class="stat">
+          <div class="card">
+            <div class="num">24+</div>
+            <div class="desc">精选卡片</div>
+          </div>
+          <div class="card">
+            <div class="num">8</div>
+            <div class="desc">主题标签</div>
+          </div>
+          <div class="card">
+            <div class="num">3</div>
+            <div class="desc">页面示例</div>
+          </div>
+        </div>
+        <div class="cta">
+          <a class="btn-primary" href="/new-page.html">浏览更多卡片</a>
+          <a class="btn-secondary" href="#cards">跳转卡片区</a>
+        </div>
+      </div>
+      <div class="hero-card">
+        <div class="thumb" aria-hidden="true"></div>
+        <h3 style="margin:12px 0 6px">柔和的视觉层次</h3>
+        <p style="color:var(--muted); margin:0;">通过淡紫渐变与圆角卡片，打造舒适不刺眼的阅读体验。</p>
+      </div>
+    </section>
+
+    <section id="cards" class="grid" aria-label="卡片栅格">
+      <!-- 多卡片示例 -->
+      <article class="card">
+        <div class="thumb"></div>
+        <div class="content">
+          <h3 class="title">🍵 午后茶歇</h3>
+          <p class="desc">在柔光下放松心绪，拥抱片刻宁静。</p>
+          <div class="tags">
+            <span class="tag">休闲</span><span class="tag">轻松</span><span class="tag">舒适</span>
+          </div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="thumb"></div>
+        <div class="content">
+          <h3 class="title">📚 迷你书架</h3>
+          <p class="desc">知识与美感同在，让阅读更有仪式感。</p>
+          <div class="tags">
+            <span class="tag">学习</span><span class="tag">美学</span><span class="tag">收藏</span>
+          </div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="thumb"></div>
+        <div class="content">
+          <h3 class="title">🎧 轻音播放</h3>
+          <p class="desc">用音乐点亮日常，淡淡紫光与旋律相拥。</p>
+          <div class="tags">
+            <span class="tag">音乐</span><span class="tag">氛围</span><span class="tag">轻盈</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="thumb"></div>
+        <div class="content">
+          <h3 class="title">🌸 花与卡片</h3>
+          <p class="desc">花瓣与卡片的语言，温柔而轻快。</p>
+          <div class="tags">
+            <span class="tag">自然</span><span class="tag">唯美</span><span class="tag">清新</span>
+          </div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="thumb"></div>
+        <div class="content">
+          <h3 class="title">🧁 小甜点</h3>
+          <p class="desc">甜而不腻的配色，像一口绵软的雪糕。</p>
+          <div class="tags">
+            <span class="tag">甜品</span><span class="tag">软糯</span><span class="tag">淡紫</span>
+          </div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="thumb"></div>
+        <div class="content">
+          <h3 class="title">🪴 小叶插画</h3>
+          <p class="desc">用插画点缀页面角落，生动又不打扰。</p>
+          <div class="tags">
+            <span class="tag">插画</span><span class="tag">点缀</span><span class="tag">极简</span>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <footer>
+      © Lavender Haven · 以淡紫之名，献给温柔你。
+    </footer>
+  </div>
 </body>
 </html>
