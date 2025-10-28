@@ -1,6 +1,10 @@
 package com.http.server;
 
-import com.http.common.*;
+import com.http.utils.ConsoleWriter;
+
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -16,16 +20,17 @@ public class HttpServer {
 
     public void start() {
         //启动服务器，监听端口，处理连接
-        System.out.println(" 💫 HTTP服务器已启动，监听端口: " + port);
+        ConsoleWriter.logServer("💫 HTTP服务器已启动，监听端口: " + port);
 
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             while (true) {
                 Socket clientSocket = serverSocket.accept();// 等待客户端连接
-                System.out.println("🔗 收到客户端连接: " + clientSocket.getInetAddress());
+                ConsoleWriter.logServer("🔗 收到客户端连接: " + clientSocket.getInetAddress());
                 //处理连接
                 new Thread(new ConnectionHandler(clientSocket)).start();
             }
         } catch (IOException e) {
+            ConsoleWriter.logError("服务器异常: " + e.getMessage());
             e.printStackTrace();
         }
 

@@ -34,7 +34,7 @@ public class LoginHandler {
             return response;
         }
 
-        if (UserManager.login(username, password)) {
+        if (UserManager.getInstance().login(username, password)) {
             response.setStatusCode(HttpStatus.OK);
             response.setReasonPhrase(HttpStatus.getReasonPhrase(HttpStatus.OK));
             response.setBody("Login successful!");
@@ -47,7 +47,7 @@ public class LoginHandler {
         // 设置响应头
         Map<String, String> headers = new HashMap<>();
         headers.put("Content-Type", "text/plain; charset=UTF-8");
-        headers.put("Content-Length", String.valueOf(response.getBody().getBytes().length));
+        headers.put("Content-Length", String.valueOf(response.getBody().length));
         response.setHeaders(headers);
 
         return response;

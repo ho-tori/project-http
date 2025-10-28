@@ -1,6 +1,8 @@
 package com.http.client;
 
 import com.http.common.*;
+import com.http.utils.ConsoleWriter;
+
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
@@ -25,7 +27,7 @@ public class HttpClient {
         Socket socket = new Socket(host, port);
 
         try (PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
             // 发送请求
             writer.print(request.toString());
@@ -110,7 +112,7 @@ public class HttpClient {
                     break;
                 }
 
-                System.out.println("重定向到: " + location);
+                ConsoleWriter.logClient("重定向到: " + location);
 
                 // 发送新请求到重定向的位置
                 HttpRequest redirectRequest = new HttpRequest("GET", location);
@@ -122,7 +124,7 @@ public class HttpClient {
                 redirectCount++;
 
             } else if (statusCode == HttpStatus.NOT_MODIFIED) {
-                System.out.println("资源未修改 (304)");
+                ConsoleWriter.logClient("资源未修改 (304)");
                 break;
             } else {
                 break;
@@ -130,7 +132,7 @@ public class HttpClient {
         }
 
         if (redirectCount >= maxRedirects) {
-            System.out.println("重定向次数过多，停止重定向");
+            ConsoleWriter.logError("重定向次数过多，停止重定向");
         }
 
         return currentResponse;
@@ -140,26 +142,26 @@ public class HttpClient {
      * 显示响应信息
      */
     public void displayResponse(HttpResponse response) {
-        System.out.println("=== HTTP响应 ===");
-        System.out.println("状态: " + response.getStatusCode() + " " + response.getReasonPhrase());
+        ConsoleWriter.logClient("=== HTTP响应 ===");
+        ConsoleWriter.logClient("状态: " + response.getStatusCode() + " " + response.getReasonPhrase());
 
-        System.out.println("\n响应头:");
+        ConsoleWriter.logClient("\n响应头:");
         for (String headerName : response.getHeaders().keySet()) {
-            System.out.println(headerName + ": " + response.getHeader(headerName));
+            ConsoleWriter.logClient(headerName + ": " + response.getHeader(headerName));
         }
 
-        System.out.println("\n响应体:");
+        ConsoleWriter.logClient("\n响应体:");
         if (response.getBody() != null) {
             String contentType = response.getHeader("Content-Type");
             if (contentType != null && MimeType.isTextType(contentType)) {
-                System.out.println(new String(response.getBody()));
+                ConsoleWriter.logClient(new String(response.getBody()));
             } else {
-                System.out.println("[二进制内容，长度: " + response.getBody().length + " 字节]");
+                ConsoleWriter.logClient("[二进制内容，长度: " + response.getBody().length + " 字节]");
             }
         } else {
-            System.out.println("[无响应体]");
+            ConsoleWriter.logClient("[无响应体]");
         }
-        System.out.println("================");
+        ConsoleWriter.logClient("================");
     }
 
     /**
@@ -168,21 +170,21 @@ public class HttpClient {
     public void startCommandLineInterface() {
         try (Scanner scanner = new Scanner(System.in)) {
 
-            System.out.println("简单HTTP客户端");
-            System.out.println("连接到服务器: " + host + ":" + port);
-            System.out.println("支持的命令:");
-            System.out.println("  GET <uri>                        - 发送GET请求");
-            System.out.println("  POST <uri> <text|file_path>      - 发送POST请求，可直接发送文本或上传文件");
-            System.out.println("     示例:");
-            System.out.println("        POST /api/upload hello=world      (发送文本数据)");
-            System.out.println("        POST /api/upload ./data/test.txt  (上传文件)");
-            System.out.println("  REGISTER <username> <password>   - 用户注册");
-            System.out.println("  LOGIN <username> <password>      - 用户登录");
-            System.out.println("  QUIT                             - 退出客户端");
-            System.out.println();
+            ConsoleWriter.logClient("简单HTTP客户端");
+            ConsoleWriter.logClient("连接到服务器: " + host + ":" + port);
+            ConsoleWriter.logClient("支持的命令:");
+            ConsoleWriter.logClient("  GET <uri>                        - 发送GET请求");
+            ConsoleWriter.logClient("  POST <uri> <text|file_path>      - 发送POST请求，可直接发送文本或上传文件");
+            ConsoleWriter.logClient("     示例:");
+            ConsoleWriter.logClient("        POST /api/upload hello=world      (发送文本数据)");
+            ConsoleWriter.logClient("        POST /api/upload ./data/test.txt  (上传文件)");
+            ConsoleWriter.logClient("  REGISTER <username> <password>   - 用户注册");
+            ConsoleWriter.logClient("  LOGIN <username> <password>      - 用户登录");
+            ConsoleWriter.logClient("  QUIT                             - 退出客户端");
+            ConsoleWriter.logClient(""); // 打印一个空行
 
             while (true) {
-                System.out.print("> ");
+                ConsoleWriter.prompt();
                 String input = scanner.nextLine().trim();
 
                 if (input.isEmpty()) {
@@ -196,7 +198,7 @@ public class HttpClient {
                     switch (command) {
                         case "GET":
                             if (parts.length < 2) {
-                                System.out.println("用法: GET <uri>");
+                                ConsoleWriter.logError("用法: GET <uri>");
                                 break;
                             }
                             handleGetCommand(parts[1]);
@@ -204,7 +206,7 @@ public class HttpClient {
 
                         case "POST":
                             if (parts.length < 3) {
-                                System.out.println("用法: POST <uri> <body或文件路径>");
+                                ConsoleWriter.logError("用法: POST <uri> <body或文件路径>");
                                 break;
                             }
 
@@ -216,7 +218,7 @@ public class HttpClient {
                             if (file.exists() && file.isFile()) {
                                 // 🌸 文件上传模式
                                 try (java.io.FileInputStream fis = new java.io.FileInputStream(file);
-                                     java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream()) {
+                                        java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream()) {
 
                                     byte[] tmp = new byte[4096];
                                     int len;
@@ -224,15 +226,15 @@ public class HttpClient {
                                         buffer.write(tmp, 0, len);
                                     }
                                     bodyBytes = buffer.toByteArray();
-                                    System.out.println("🌸 检测到文件上传: " + file.getName() + " (" + bodyBytes.length + " bytes)");
+                                    ConsoleWriter.logClient("🌸 检测到文件上传: " + file.getName() + " (" + bodyBytes.length + " bytes)");
                                 } catch (Exception e) {
-                                    System.err.println("读取文件失败: " + e.getMessage());
+                                    ConsoleWriter.logError("读取文件失败: " + e.getMessage());
                                     break;
                                 }
                             } else {
                                 // 🌸 普通文本 POST
                                 bodyBytes = bodyInput.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-                                System.out.println("🌸 使用文本 POST 请求: " + bodyInput);
+                                ConsoleWriter.logClient("🌸 使用文本 POST 请求: " + bodyInput);
                             }
 
                             handlePostCommand(uri, bodyBytes);
@@ -240,7 +242,7 @@ public class HttpClient {
 
                         case "REGISTER":
                             if (parts.length < 3) {
-                                System.out.println("用法: REGISTER <username> <password>");
+                                ConsoleWriter.logError("用法: REGISTER <username> <password>");
                                 break;
                             }
                             handleRegisterCommand(parts[1], parts[2]);
@@ -248,22 +250,22 @@ public class HttpClient {
 
                         case "LOGIN":
                             if (parts.length < 3) {
-                                System.out.println("用法: LOGIN <username> <password>");
+                                ConsoleWriter.logError("用法: LOGIN <username> <password>");
                                 break;
                             }
                             handleLoginCommand(parts[1], parts[2]);
                             break;
 
                         case "QUIT":
-                            System.out.println("再见！");
+                            ConsoleWriter.logClient("再见！");
                             return;
 
                         default:
-                            System.out.println("未知命令: " + command);
+                            ConsoleWriter.logError("未知命令: " + command);
                             break;
                     }
                 } catch (IOException e) {
-                    System.out.println("请求失败: " + e.getMessage());
+                    ConsoleWriter.logError("请求失败: " + e.getMessage());
                 }
             }
         }
@@ -293,7 +295,7 @@ public class HttpClient {
     }
 
     public static void main(String[] args) {
-        HttpClient client = new HttpClient("localhost", 8080);
+        HttpClient client = new HttpClient("localhost", 6175);
         client.startCommandLineInterface();
     }
 }

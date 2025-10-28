@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -40,6 +41,7 @@ public class HttpRequest {
         this.headers = (headers != null) ? headers : new HashMap<>();//防止传入null
         this.body = body;
     }
+
 
     public static HttpRequest parse(String requestString) {
         HttpRequest request = new HttpRequest();
@@ -91,6 +93,25 @@ public class HttpRequest {
         headers.put(name, value);
     }
 
+    public Map<String, String> getBodyParams() {
+    Map<String, String> params = new HashMap<>();
+    if (body == null || body.length == 0) return params;
+
+    String bodyStr = new String(body, StandardCharsets.UTF_8);
+    String[] pairs = bodyStr.split("&");
+    for (String pair : pairs) {
+        String[] kv = pair.split("=", 2);
+        if (kv.length == 2) {
+            // URL decode 可以加上 java.net.URLDecoder.decode(kv[0], "UTF-8")
+            params.put(kv[0], kv[1]);
+        }
+    }
+    return params;
+}
+
+    public String getParam(String key) {
+        return getBodyParams().get(key);
+    }
     //getter setter
     public String getMethod() { return method; }
     public void setMethod(String method) { this.method = method; }

@@ -27,7 +27,7 @@ public class ConnectionHandler implements Runnable{
                 OutputStream output = socket.getOutputStream()
         ) {
             // 1️⃣ 解析请求
-            HttpRequest request = new HttpRequest(input);
+            HttpRequest request = HttpRequest.parse(input.toString());
             String uri = request.getUri();
             System.out.println("📩 收到请求: " + request.getMethod() + " " + uri);
 
