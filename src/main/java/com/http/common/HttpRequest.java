@@ -24,23 +24,21 @@ public class HttpRequest {
     private String method; //请求方法（GET、POST等）
     private String uri; //请求URI
     private String version; //HTTP版本
+
     private Map<String, String> headers; //请求头
 
-    private byte[] body; //POST 请求体
-
+    private String body; //POST 请求体
+//字节数组或inputstream
     //构造
     public HttpRequest() {
         headers = new HashMap<>();
     }
-    public HttpRequest(String method, String uri, String version, Map<String, String> headers, byte[] body) {
+    public HttpRequest(String method, String uri, String version, Map<String, String> headers, String body) {
         this.method = method;
         this.uri = uri;
         this.version = version;
         this.headers = (headers != null) ? headers : new HashMap<>();//防止传入null
         this.body = body;
-    }
-    public HttpRequest(String method, String uri){
-        this(method, uri, "HTTP/1.1", null, null);
     }
 
     public static HttpRequest parse(String requestString) {
@@ -82,7 +80,7 @@ public class HttpRequest {
                     bodyBuilder.append("\r\n");
                 }
             }
-            request.setBody(bodyBuilder.toString().getBytes());
+            request.setBody(bodyBuilder.toString());
         }
 
         return request;
@@ -105,8 +103,55 @@ public class HttpRequest {
     public Map<String, String> getHeaders() { return headers; }
     public void setHeaders(Map<String, String> headers) { this.headers = headers; }
 
-    public byte[] getBody() { return body; }
-    public void setBody(byte[] body) { this.body = body; }
+    public String getBody() { return body; }
+    public void setBody(String body) { this.body = body; }
+
+
+
+
+    //todo：add添加解析参数，让服务器知道哪个用户传的参数
+    /**
+     * 从URI或请求体中获取参数
+     * 支持GET ?key=value&key2=value2
+     * 以及POST的x-www-form-urlencoded格式
+     */
+    public Map<String, String> getParams() {
+        Map<String, String> params = new HashMap<>();
+
+        // --- 解析 GET 请求参数 ---
+        if (method != null && method.equalsIgnoreCase("GET") && uri.contains("?")) {
+            String queryString = uri.substring(uri.indexOf("?") + 1);
+            parseParamsFromString(queryString, params);
+        }
+
+        // --- 解析 POST 请求参数 ---
+        if (method != null && method.equalsIgnoreCase("POST") && body != null && !body.isEmpty()) {
+            parseParamsFromString(body, params);
+        }
+
+        return params;
+    }
+
+    /**
+     * 根据参数名获取单个参数值
+     */
+    public String getParam(String key) {
+        return getParams().get(key);
+    }
+
+    /**
+     * 内部方法：解析形如 a=1&b=2 的字符串
+     */
+    private void parseParamsFromString(String paramString, Map<String, String> params) {
+        String[] pairs = paramString.split("&");
+        for (String pair : pairs) {
+            String[] kv = pair.split("=", 2);
+            if (kv.length == 2) {
+                params.put(kv[0].trim(), kv[1].trim());
+            }
+        }
+    }
+
 }
 
 
