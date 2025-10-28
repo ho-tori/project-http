@@ -20,13 +20,13 @@ public class HttpResponse {
     private int statusCode; //状态码
     private String reasonPhrase; //状态描述
     private Map<String, String> headers; //响应头
-    private String body; //响应体
+    private byte[] body; //响应体
 
     //构造
     public HttpResponse() {
         headers = new HashMap<>();
     }
-    public HttpResponse(String version, int statusCode, String reasonPhrase, Map<String, String> headers, String body) {
+    public HttpResponse(String version, int statusCode, String reasonPhrase, Map<String, String> headers, byte[] body) {
         this.version = version;
         this.statusCode = statusCode;
         this.reasonPhrase = reasonPhrase;
@@ -74,13 +74,16 @@ public class HttpResponse {
                     bodyBuilder.append("\r\n");
                 }
             }
-            response.setBody(bodyBuilder.toString());
+            response.setBody(bodyBuilder.toString().getBytes());
         }
 
         return response;
     }
     public void addHeader(String name, String value) {
         headers.put(name, value);
+    }
+    public String getHeader(String name) {
+        return headers.get(name);
     }
 
 
@@ -97,6 +100,6 @@ public class HttpResponse {
     public Map<String, String> getHeaders() { return headers; }
     public void setHeaders(Map<String, String> headers) { this.headers = headers; }
 
-    public String getBody() { return body; }
-    public void setBody(String body) { this.body = body; }
+    public byte[] getBody() { return body; }
+    public void setBody(byte[] body) { this.body = body; }
 }
