@@ -102,4 +102,29 @@ public class HttpResponse {
 
     public byte[] getBody() { return body; }
     public void setBody(byte[] body) { this.body = body; }
+    public void setBody(String body) {
+        this.body = body.getBytes();
+    }
+
+    public byte[] toBytes() {
+        StringBuilder builder = new StringBuilder();
+        // 状态行
+        builder.append(version).append(" ").append(statusCode).append(" ").append(reasonPhrase).append("\r\n");
+        // 响应头
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            builder.append(entry.getKey()).append(": ").append(entry.getValue()).append("\r\n");
+        }
+        builder.append("\r\n"); // 空行
+
+        // 响应体
+        byte[] headerBytes = builder.toString().getBytes();
+        if (body != null && body.length > 0) {
+            byte[] responseBytes = new byte[headerBytes.length + body.length];
+            System.arraycopy(headerBytes, 0, responseBytes, 0, headerBytes.length);
+            System.arraycopy(body, 0, responseBytes, headerBytes.length, body.length);
+            return responseBytes;
+        } else {
+            return headerBytes;
+        }
+    }
 }
