@@ -34,7 +34,7 @@ public class UserManager {
         return true;
     }
     //登录方法
-    public boolean login(String username, String password) {
+    public static boolean login(String username, String password) {
         String storedPassword = users.get(username);
         return storedPassword != null && storedPassword.equals(password);
     }

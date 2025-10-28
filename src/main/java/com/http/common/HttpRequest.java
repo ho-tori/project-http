@@ -28,7 +28,7 @@ public class HttpRequest {
     private Map<String, String> headers; //请求头
 
     private String body; //POST 请求体
-
+//字节数组或inputstream
     //构造
     public HttpRequest() {
         headers = new HashMap<>();
@@ -105,6 +105,53 @@ public class HttpRequest {
 
     public String getBody() { return body; }
     public void setBody(String body) { this.body = body; }
+
+
+
+
+    //todo：add添加解析参数，让服务器知道哪个用户传的参数
+    /**
+     * 从URI或请求体中获取参数
+     * 支持GET ?key=value&key2=value2
+     * 以及POST的x-www-form-urlencoded格式
+     */
+    public Map<String, String> getParams() {
+        Map<String, String> params = new HashMap<>();
+
+        // --- 解析 GET 请求参数 ---
+        if (method != null && method.equalsIgnoreCase("GET") && uri.contains("?")) {
+            String queryString = uri.substring(uri.indexOf("?") + 1);
+            parseParamsFromString(queryString, params);
+        }
+
+        // --- 解析 POST 请求参数 ---
+        if (method != null && method.equalsIgnoreCase("POST") && body != null && !body.isEmpty()) {
+            parseParamsFromString(body, params);
+        }
+
+        return params;
+    }
+
+    /**
+     * 根据参数名获取单个参数值
+     */
+    public String getParam(String key) {
+        return getParams().get(key);
+    }
+
+    /**
+     * 内部方法：解析形如 a=1&b=2 的字符串
+     */
+    private void parseParamsFromString(String paramString, Map<String, String> params) {
+        String[] pairs = paramString.split("&");
+        for (String pair : pairs) {
+            String[] kv = pair.split("=", 2);
+            if (kv.length == 2) {
+                params.put(kv[0].trim(), kv[1].trim());
+            }
+        }
+    }
+
 }
 
 
