@@ -52,6 +52,7 @@ public class HttpRequest {
             return null;
         }
 
+
         // 解析请求行
         String[] requestLine = lines[0].split(" ");
         if (requestLine.length >= 3) {
