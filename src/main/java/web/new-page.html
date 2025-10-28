@@ -1,13 +1,109 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>新页面</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lavender Haven · 更多卡片</title>
+  <style>
+    :root {
+      --bg: #f6f2fe;
+      --text: #3f2b56;
+      --muted: #7b6b8e;
+      --card: #ffffff;
+      --accent: #a78bfa;
+      --accent-2: #c4b5fd;
+      --shadow: 0 10px 25px rgba(167, 139, 250, .18);
+    }
+    body { margin: 0; color: var(--text); background:
+      radial-gradient(500px 300px at 15% 0%, #ede7ff, transparent 55%),
+      radial-gradient(700px 400px at 90% 10%, #f7f2ff, transparent 55%),
+      linear-gradient(180deg, #f6f2fe, #f6f2fe);
+      font: 16px/1.65 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    .shell { max-width: 1200px; margin: 0 auto; padding: 28px 20px 44px; }
+    header { display:flex; align-items:center; justify-content:space-between; margin-bottom: 16px; }
+    .title { margin:0; font-size: 22px; }
+    .back { color: var(--accent); }
+
+    .grid { display:grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+    .card {
+      border-radius: 16px; background: var(--card); box-shadow: var(--shadow); border: 1px solid #eee; overflow:hidden;
+      display:flex; flex-direction:column; min-height: 230px; position: relative; transition: transform .12s ease, box-shadow .2s ease;
+    }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 18px 34px rgba(167,139,250,.22); }
+    .thumb { height: 100px; background:
+      linear-gradient(120deg, #ede7ff, #f7f2ff 45%, #eee6ff 65%, #f6efff 100%);
+    }
+    .content { padding: 16px; }
+    .content h3 { margin: 0 0 6px; font-size: 16px; }
+    .content p { margin: 0 0 12px; color: var(--muted); }
+    .chips { display:flex; flex-wrap:wrap; gap: 8px; }
+    .chip { background: #efe9ff; color: var(--text); padding: 6px 10px; border-radius: 999px; font-size: 12px; }
+
+    .ribbon {
+      position: absolute; inset: 10px auto auto 10px; background: var(--accent); color: #fff; padding: 6px 10px; border-radius: 999px; font-size: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .toolbar { display:flex; gap: 12px; margin: 18px 0; }
+    .btn { padding: 10px 14px; border-radius: 12px; border: 1px solid #eee; background: #fbf8ff; color: var(--text); }
+    .btn-primary { background: var(--accent); color:#fff; border: none; box-shadow: var(--shadow); }
+
+    @media (max-width: 980px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 720px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }
+  </style>
 </head>
 <body>
-<h1>这是重定向后的新页面</h1>
-<p>如果你看到这个页面，说明301重定向成功了！</p>
-<a href="/">返回首页</a>
+  <div class="shell">
+    <header>
+      <h1 class="title">更多卡片 · 淡紫主题 · Hover 动效</h1>
+      <a class="back" href="/">返回首页</a>
+    </header>
+
+    <div class="toolbar">
+      <button class="btn-primary" onclick="shuffle()">随机排序</button>
+      <button class="btn" onclick="addCard()">新增卡片</button>
+      <button class="btn" onclick="toggleDensity()">切换密度</button>
+    </div>
+
+    <section class="grid" id="grid">
+      <!-- 预置多卡片，打造丰富视觉 -->
+      <article class="card"><span class="ribbon">精选</span><div class="thumb"></div><div class="content"><h3>🌙 夜色与光</h3><p>静谧深处的柔光，总能治愈繁杂心绪。</p><div class="chips"><span class="chip">夜色</span><span class="chip">柔和</span><span class="chip">疗愈</span></div></div></article>
+      <article class="card"><div class="thumb"></div><div class="content"><h3>🍇 香氛物语</h3><p>淡淡紫苏与花香，让空间更有温度。</p><div class="chips"><span class="chip">香氛</span><span class="chip">空间</span><span class="chip">氛围</span></div></div></article>
+      <article class="card"><div class="thumb"></div><div class="content"><h3>🪞 光影镜面</h3><p>镜面反射与渐变光，创造层次与体积感。</p><div class="chips"><span class="chip">光影</span><span class="chip">渐变</span><span class="chip">层次</span></div></div></article>
+      <article class="card"><span class="ribbon">Hot</span><div class="thumb"></div><div class="content"><h3>🥐 清晨烘焙</h3><p>新鲜出炉的面包，配上淡紫桌布刚刚好。</p><div class="chips"><span class="chip">烘焙</span><span class="chip">清晨</span><span class="chip">温暖</span></div></div></article>
+      <article class="card"><div class="thumb"></div><div class="content"><h3>📷 复古摄影</h3><p>胶片颗粒与紫色滤镜，营造轻复古氛围。</p><div class="chips"><span class="chip">复古</span><span class="chip">胶片</span><span class="chip">滤镜</span></div></div></article>
+      <article class="card"><div class="thumb"></div><div class="content"><h3>🎨 调色板</h3><p>探索柔和紫系的配色，找到你的专属美学。</p><div class="chips"><span class="chip">配色</span><span class="chip">美学</span><span class="chip">淡紫</span></div></div></article>
+      <article class="card"><div class="thumb"></div><div class="content"><h3>🧴 质感瓶身</h3><p>磨砂与丝滑的对比，提升触感与视觉品位。</p><div class="chips"><span class="chip">质感</span><span class="chip">设计</span><span class="chip">细节</span></div></div></article>
+      <article class="card"><span class="ribbon">New</span><div class="thumb"></div><div class="content"><h3>🎐 风铃与窗</h3><p>窗边风铃与花枝，让光影与声音轻轻流动。</p><div class="chips"><span class="chip">窗边</span><span class="chip">风铃</span><span class="chip">自然</span></div></div></article>
+    </section>
+  </div>
+
+  <script>
+    const grid = document.getElementById('grid');
+    function shuffle(){
+      const cards = Array.from(grid.children);
+      for(let i=cards.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [cards[i], cards[j]] = [cards[j], cards[i]];
+      }
+      grid.innerHTML = '';
+      cards.forEach(c => grid.appendChild(c));
+    }
+    function addCard(){
+      const el = document.createElement('article');
+      el.className = 'card';
+      el.innerHTML = '<div class="thumb"></div><div class="content"><h3>🪄 新增卡片</h3><p>轻盈的淡紫卡片，随时添加。</p><div class="chips"><span class="chip">动态</span><span class="chip">新增</span><span class="chip">卡片</span></div></div>';
+      grid.appendChild(el);
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+    function toggleDensity(){
+      const cols = getComputedStyle(grid).gridTemplateColumns.split(' ').length;
+      if(cols >= 3){ grid.style.gridTemplateColumns = 'repeat(2, 1fr)'; }
+      else if(cols === 2){ grid.style.gridTemplateColumns = 'repeat(1, 1fr)'; }
+      else { grid.style.gridTemplateColumns = 'repeat(4, 1fr)'; }
+    }
+  </script>
 </body>
 </html>
