@@ -31,12 +31,9 @@ public class MimeType {
         return MIME_TYPES.getOrDefault(extension, "application/octet-stream");
     }
     public static boolean isTextType(String mimeType) {
-        return mimeType.startsWith("text/");
+        if (mimeType == null) return false;
+        return mimeType.startsWith("text/") || 
+               mimeType.startsWith("application/json") ||
+               mimeType.startsWith("application/xml");
     }
-//    public static void main(String[] args) {
-//        System.out.println(getMimeType("index.html")); // 输出: text/html
-//        System.out.println(getMimeType("photo.jpg"));  // 输出: image/jpeg
-//        System.out.println(getMimeType("test.txt"));   // 输出: text/plain
-//        System.out.println(getMimeType("unknown.xyz")); // 输出: application/octet-stream
-//    }
 }

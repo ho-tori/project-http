@@ -21,17 +21,19 @@ public class HttpServer {
     public void start() {
         //启动服务器，监听端口，处理连接
         ConsoleWriter.logServer("💫 HTTP服务器已启动，监听端口: " + port);
-
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             while (true) {
                 Socket clientSocket = serverSocket.accept();// 等待客户端连接
+                
+                // 设置Socket超时时间支持长连接 - 临时增加到2分钟用于调试
+                clientSocket.setSoTimeout(120000); // 120秒超时
+                
                 ConsoleWriter.logServer("🔗 收到客户端连接: " + clientSocket.getInetAddress());
                 //处理连接
                 new Thread(new ConnectionHandler(clientSocket)).start();
             }
         } catch (IOException e) {
             ConsoleWriter.logError("服务器异常: " + e.getMessage());
-            e.printStackTrace();
         }
 
     }
