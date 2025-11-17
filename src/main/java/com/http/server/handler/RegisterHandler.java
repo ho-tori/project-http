@@ -9,8 +9,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ReigisterHandler {
-    private final UserManager userManager = UserManager.getInstance();
+public class RegisterHandler {
+    private final UserManager userManager = UserManager.getInstance("src/main/java/com/http/server/auth/users.json");
 
     /**
      * 处理用户注册，仅支持 POST，Body 为简易 JSON：{"username":"...","password":"..."}

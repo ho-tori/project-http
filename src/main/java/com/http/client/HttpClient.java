@@ -5,7 +5,6 @@ import com.http.utils.ConsoleWriter;
 
 import java.io.*;
 import java.net.*;
-import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
 /**
@@ -26,12 +25,27 @@ public class HttpClient {
     public HttpResponse sendRequest(HttpRequest request) throws IOException {
         Socket socket = new Socket(host, port);
 
-        try (PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+        try (OutputStream out = socket.getOutputStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
-            // 发送请求
-            writer.print(request.toString());
-            writer.flush();
+            // 发送请求头部
+            StringBuilder headerBuilder = new StringBuilder();
+            headerBuilder.append(request.getMethod()).append(" ").append(request.getUri()).append(" ").append(request.getVersion()).append("\r\n");
+            
+            for (java.util.Map.Entry<String, String> entry : request.getHeaders().entrySet()) {
+                headerBuilder.append(entry.getKey()).append(": ").append(entry.getValue()).append("\r\n");
+            }
+            headerBuilder.append("\r\n");
+            
+            // 发送头部（文本）
+            out.write(headerBuilder.toString().getBytes("UTF-8"));
+            
+            // 发送请求体（二进制数据）
+            if (request.getBody() != null && request.getBody().length > 0) {
+                out.write(request.getBody());
+            }
+            
+            out.flush();
 
             // 读取响应
             StringBuilder responseBuilder = new StringBuilder();
