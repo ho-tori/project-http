@@ -24,11 +24,10 @@ public class HttpRequest {
     private String method; //请求方法（GET、POST等）
     private String uri; //请求URI
     private String version; //HTTP版本
-
     private Map<String, String> headers; //请求头
-
     private String body; //POST 请求体
-//字节数组或inputstream
+
+    //字节数组或inputstream
     //构造
     public HttpRequest() {
         headers = new HashMap<>();
@@ -105,9 +104,6 @@ public class HttpRequest {
 
     public String getBody() { return body; }
     public void setBody(String body) { this.body = body; }
-
-
-
 
     //todo：add添加解析参数，让服务器知道哪个用户传的参数
     /**
