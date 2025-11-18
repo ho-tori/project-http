@@ -62,13 +62,14 @@ public class HttpRequest {
             // 检查是否到达头部结尾
             byte[] headerBytes = headerBuffer.toByteArray();
             int len = headerBytes.length;
+
             if (len >= 4) {
-                if (headerBytes[len-4] == '\r' && headerBytes[len-3] == '\n' &&
-                    headerBytes[len-2] == '\r' && headerBytes[len-1] == '\n') {
+                if (headerBytes[len - 4] == '\r' && headerBytes[len - 3] == '\n'
+                        && headerBytes[len - 2] == '\r' && headerBytes[len - 1] == '\n') {
                     foundHeaderEnd = true;
                 }
             } else if (len >= 2) {
-                if (headerBytes[len-2] == '\n' && headerBytes[len-1] == '\n') {
+                if (headerBytes[len - 2] == '\n' && headerBytes[len - 1] == '\n') {
                     foundHeaderEnd = true;
                 }
             }
@@ -109,82 +110,22 @@ public class HttpRequest {
                 }
             }
 
-
-            // 读取请求体 - 使用更大的缓冲区
+            // 🌸 gpt酱修改后的 body 读取（最正确、最可靠的方式）
             if (contentLength > 0) {
                 this.body = new byte[contentLength];
                 int totalRead = 0;
-                byte[] readBuffer = new byte[8192]; // 8KB 缓冲区
-
-                long startTime = System.currentTimeMillis();
-                int maxWaitTime = 10000; // 10秒总超时
-
                 while (totalRead < contentLength) {
-                    // 检查总超时
-                    if (System.currentTimeMillis() - startTime > maxWaitTime) {
-                        break;
+                    int read = inputStream.read(this.body, totalRead, contentLength - totalRead);
+                    if (read == -1) {
+                        throw new IOException("未能读取完整的请求体：期望 " + contentLength + " 字节，但只读取了 " + totalRead + " 字节");
                     }
-
-                    int toRead = Math.min(readBuffer.length, contentLength - totalRead);
-
-                    int bytesRead;
-                    try {
-                        bytesRead = inputStream.read(readBuffer, 0, toRead);
-                    } catch (java.io.InterruptedIOException e) {
-                        break;
-                    }
-
-                    if (bytesRead == -1) {
-                        break;
-                    }
-
-                    if (bytesRead > 0) {
-                        // 将读取的数据复制到body数组中
-                        System.arraycopy(readBuffer, 0, this.body, totalRead, bytesRead);
-                        totalRead += bytesRead;
-                    } else {
-
-                        // 如果剩余数据很少，可能是网络传输问题，尝试几次后放弃
-                        int remaining = contentLength - totalRead;
-                        if (remaining < 100) {
-                            long smallWaitStart = System.currentTimeMillis();
-
-                            while (remaining > 0 && (System.currentTimeMillis() - smallWaitStart) < 2000) {
-                                try {
-                                    int finalRead = inputStream.read(readBuffer, 0, Math.min(remaining, readBuffer.length));
-                                    if (finalRead > 0) {
-                                        System.arraycopy(readBuffer, 0, this.body, totalRead, finalRead);
-                                        totalRead += finalRead;
-                                        remaining = contentLength - totalRead;
-                                    } else {
-                                        Thread.sleep(50);
-                                    }
-                                } catch (Exception e) {
-                                    break;
-                                }
-                            }
-
-                            if (remaining > 0) {
-                            }
-                            break; // 无论如何都结束
-                        } else {
-                            // 给一点时间让数据到达
-                            try {
-                                Thread.sleep(50);
-                            } catch (InterruptedException e) {
-                                Thread.currentThread().interrupt();
-                                break;
-                            }
-                        }
-                    }
+                    totalRead += read;
                 }
 
-                if (totalRead < contentLength) {
-                    byte[] actualBody = new byte[totalRead];
-                    System.arraycopy(this.body, 0, actualBody, 0, totalRead);
-                    this.body = actualBody;
+                // 若未完全读取，说明客户端异常断开
+                if (this.body.length < contentLength) {
+                    throw new IOException("请求体未完全读取：期望 " + contentLength + " 字节，但收到 " + this.body.length);
                 }
-
             }
 
         } catch (java.net.SocketException e) {
@@ -225,7 +166,7 @@ public class HttpRequest {
             }
         }
 
-        // 解析请求体
+        // 解析响应体
         if (bodyStartIndex != -1 && bodyStartIndex < lines.length) {
             StringBuilder bodyBuilder = new StringBuilder();
             for (int i = bodyStartIndex; i < lines.length; i++) {
@@ -279,28 +220,28 @@ public class HttpRequest {
     public byte[] getBody() { return body; }
     public void setBody(byte[] body) { this.body = body; }
 
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
-
-        // 请求行
-        builder.append(method).append(" ").append(uri).append(" ").append(version).append("\r\n");
-
-        // 请求头
-        for (Map.Entry<String, String> entry : headers.entrySet()) {
-            builder.append(entry.getKey()).append(": ").append(entry.getValue()).append("\r\n");
-        }
-
-        // 空行
-        builder.append("\r\n");
-
-        // 请求体
-        if (body != null && body.length > 0) {
-            builder.append(new String(body));
-        }
-
-        return builder.toString();
-    }
+//    @Override
+//    //public String toString() {
+//        StringBuilder builder = new StringBuilder();
+//
+//        // 请求行
+//        builder.append(method).append(" ").append(uri).append(" ").append(version).append("\r\n");
+//
+//        // 请求头
+//        for (Map.Entry<String, String> entry : headers.entrySet()) {
+//            builder.append(entry.getKey()).append(": ").append(entry.getValue()).append("\r\n");
+//        }
+//
+//        // 空行
+//        builder.append("\r\n");
+//
+//        // 请求体
+//        if (body != null && body.length > 0) {
+//            builder.append(new String(body));
+//        }
+//
+//        return builder.toString();
+//    }
 }
 
 
