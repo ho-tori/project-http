@@ -5,9 +5,6 @@ import com.http.common.HttpResponse;
 import com.http.common.HttpStatus;
 import com.http.server.auth.UserManager;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class LoginHandler {
     //处理 login 的 POST 请求
     //调用 UserManager 进行验证，返回登录结果的 HttpResponse
@@ -23,18 +20,19 @@ public class LoginHandler {
             return response;
         }
 
-        String username = request.getParam("username");
-        String password = request.getParam("password");
-        //todo:接口可能还要再处理一下
+        // 解析JSON请求体
+        String body = request.getBody() == null ? "" : new String(request.getBody(), java.nio.charset.StandardCharsets.UTF_8);
+        String username = extractJsonField(body, "username");
+        String password = extractJsonField(body, "password");
 
         if (username == null || password == null) {
-            response.setStatusCode(HttpStatus.NOT_FOUND);
-            response.setReasonPhrase(HttpStatus.getReasonPhrase(HttpStatus.NOT_FOUND));
-            response.setBody("Missing username or password.");
+            response.setStatusCode(400); // BAD_REQUEST
+            response.setReasonPhrase("Bad Request");
+            response.setBody("Missing username or password in JSON body.");
             return response;
         }
 
-        if (UserManager.login(username, password)) {
+        if (UserManager.getInstance("src/main/java/com/http/server/auth/users.json").login(username, password)) {
             response.setStatusCode(HttpStatus.OK);
             response.setReasonPhrase(HttpStatus.getReasonPhrase(HttpStatus.OK));
             response.setBody("Login successful!");
@@ -45,11 +43,19 @@ public class LoginHandler {
         }
 
         // 设置响应头
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Content-Type", "text/plain; charset=UTF-8");
-        headers.put("Content-Length", String.valueOf(response.getBody().getBytes().length));
-        response.setHeaders(headers);
+        response.addHeader("Content-Type", "text/plain; charset=UTF-8");
+        response.addHeader("Content-Length", String.valueOf(response.getBody().length));
+        response.addHeader("Connection", "close");
 
         return response;
+    }
+
+    /**
+     * 简单的JSON字段提取方法
+     */
+    private String extractJsonField(String json, String key) {
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile("\"" + java.util.regex.Pattern.quote(key) + "\"\\s*:\\s*\"(.*?)\"");
+        java.util.regex.Matcher m = p.matcher(json);
+        return m.find() ? m.group(1) : null;
     }
 }
