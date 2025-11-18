@@ -288,7 +288,44 @@ public class HttpClient {
     private void handleGetCommand(String uri) throws IOException {
         HttpResponse response = get(uri);
         response = handleRedirect(response, 5);
-        displayResponse(response);
+
+        displayResponse(response); // 先打印响应信息
+
+        // 判断是否是二进制内容（图片/文件）
+        String contentType = response.getHeader("Content-Type");
+        if (contentType != null && !MimeType.isTextType(contentType)) {
+            byte[] body = response.getBody();
+            if (body != null && body.length > 0) {
+                // 根据 URI 和 Content-Type 生成文件名
+                String filename = generateFileName(uri, contentType);
+                saveBinaryFile(body, filename);
+            }
+        }
+    }
+
+    // 保存文件方法
+    private void saveBinaryFile(byte[] data, String fileName) {
+        File dir = new File("downloads/");
+        if (!dir.exists()) dir.mkdirs(); // 确保目录存在
+
+        File file = new File(dir, fileName);
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write(data);
+            System.out.println("文件已保存: " + file.getAbsolutePath());
+        } catch (IOException e) {
+            System.err.println("保存文件失败: " + e.getMessage());
+        }
+    }
+
+    // 根据 URI 或 Content-Type 自动生成文件名
+    private String generateFileName(String uri, String contentType) {
+        String name = uri.substring(uri.lastIndexOf('/') + 1);
+        if (name.isEmpty() || name.contains("?")) {
+            // 如果 URI 没有文件名或者带参数，用时间戳生成
+            String ext = contentType.split("/")[1]; // e.g., png, jpeg
+            name = "downloaded_" + System.currentTimeMillis() + "." + ext;
+        }
+        return name;
     }
 
     private void handlePostCommand(String uri, byte[] body) throws IOException {
