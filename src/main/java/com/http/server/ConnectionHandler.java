@@ -105,7 +105,7 @@ public class ConnectionHandler implements Runnable{
         response.setReasonPhrase("Internal Server Error");
         
         String body = "<html><body><h1>500 Internal Server Error</h1><p>The server encountered an unexpected condition.</p></body></html>";
-        response.setBody(body);
+        response.setBody(body.getBytes());
         response.addHeader("Content-Type", "text/html");
         response.addHeader("Content-Length", String.valueOf(body.length()));
         response.addHeader("Connection", "close");
