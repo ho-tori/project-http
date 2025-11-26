@@ -1,5 +1,10 @@
 package com.http.common;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.Socket;
+import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -43,46 +48,87 @@ public class HttpResponse {
         return headers.get(name);
     }
 
-    // -------------------------------
-    // ✅ 可选：解析响应字符串（用于调试）
-    // -------------------------------
-    public static HttpResponse parse(String responseString) {
+    public static HttpResponse parse(InputStream inputStream) throws IOException {
         HttpResponse response = new HttpResponse();
-        String[] lines = responseString.split("\r\n");
+        response.setHeaders(new HashMap<>());
 
-        if (lines.length == 0) return null;
+        // ---1. 读取Header ---
+        ByteArrayOutputStream headerBuffer = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1];
+        boolean foundHeaderEnd = false;
 
-        // 解析状态行
-        String[] requestLine = lines[0].split(" ", 3);
-        if (requestLine.length >= 3) {
-            response.setVersion(requestLine[0]);
-            response.setStatusCode(Integer.parseInt(requestLine[1]));
-            response.setReasonPhrase(requestLine[2]);
+        while(!foundHeaderEnd){
+            int bytesRead = inputStream.read(buffer);
+            if (bytesRead == -1) break;
+
+            byte b = buffer[0];
+            headerBuffer.write(b);
+
+            byte[] headerBytes = headerBuffer.toByteArray();
+            int len = headerBytes.length;
+
+            if (len >= 4) {
+                if (headerBytes[len - 4] == '\r' && headerBytes[len - 3] == '\n'
+                        && headerBytes[len - 2] == '\r' && headerBytes[len - 1] == '\n') {
+                    foundHeaderEnd = true;
+                }
+            } else if (len >= 2) {
+                if (headerBytes[len - 2] == '\n' && headerBytes[len - 1] == '\n') {
+                    foundHeaderEnd = true;
+                }
+            }
+
         }
 
-        // 解析头部
-        int bodyStartIndex = -1;
-        for (int i = 1; i < lines.length; i++) {
-            if (lines[i].trim().isEmpty()) {
-                bodyStartIndex = i + 1;
-                break;
-            }
-            String[] headerParts = lines[i].split(": ", 2);
-            if (headerParts.length == 2) {
-                response.addHeader(headerParts[0], headerParts[1]);
-            }
+        // --- 2.解析Header ---
+        String headerString = headerBuffer.toString("UTF-8");
+        String[] lines = headerString.split("\r?\n");
+
+        if (lines.length == 0) {
+            throw new IOException("无效的HTTP响应：响应行为空");
         }
 
-        // 解析响应体（仅限文本）
-        if (bodyStartIndex != -1 && bodyStartIndex < lines.length) {
-            StringBuilder bodyBuilder = new StringBuilder();
-            for (int i = bodyStartIndex; i < lines.length; i++) {
-                bodyBuilder.append(lines[i]);
-                if (i < lines.length - 1) bodyBuilder.append("\r\n");
+        try{
+            String responseLine = lines[0].trim();
+            String[] parts = responseLine.split(" ", 3);
+            if (parts.length >= 3) {
+                response.setVersion(parts[0]);
+                response.setStatusCode(Integer.parseInt(parts[1]));
+                response.setReasonPhrase(parts[2]);
+            } else {
+                throw new IOException("无效的HTTP响应行格式: " + responseLine);
             }
-            response.setBody(bodyBuilder.toString().getBytes());
-        }
 
+            int contentLength = 0;
+            for (int i = 1; i < lines.length; i++) {
+                String line = lines[i].trim();
+                if(!line.isEmpty()){
+                    String[] headerParts = line.split(": ", 2);
+                    if(headerParts.length == 2){
+                        response.addHeader(headerParts[0], headerParts[1]);
+                        if("Content-Length".equalsIgnoreCase(headerParts[0])){
+                            contentLength = Integer.parseInt(headerParts[1]);
+                        }
+                    }
+                }
+            }
+            if(contentLength > 0) {
+                byte[] bodyBytes = new byte[contentLength];
+                int totalRead = 0;
+                while (totalRead < contentLength) {
+                    int read = inputStream.read(bodyBytes, totalRead, contentLength - totalRead);
+                    if (read == -1) {
+                        throw new IOException("未能读取完整的响应体：期望 " + contentLength + " 字节，但只读取了 " + totalRead + " 字节");
+                    }
+                    totalRead += read;
+                }
+                response.setBody(bodyBytes);
+            }
+        }catch (NumberFormatException e){
+            throw new IOException("无效的状态码或Content-length: " + e.getMessage(), e);
+        }catch (SocketException e){
+            throw new IOException("连接已断开: " + e.getMessage(), e);
+        }
         return response;
     }
 
