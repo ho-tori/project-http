@@ -10,6 +10,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 public class StaticFileHandler {
     // 静态文件根目录（相对于项目根目录）
@@ -18,6 +21,20 @@ public class StaticFileHandler {
     public StaticFileHandler() {
         // 默认指向 src/main/java/web 目录
         this(Paths.get("src", "main", "java", "web"));
+    }
+
+    /**
+     * 构造 304 Not Modified 响应
+     */
+    private HttpResponse buildNotModified(String lastModified) {
+        HttpResponse resp = new HttpResponse();
+        resp.setVersion("HTTP/1.1");
+        resp.setStatusCode(HttpStatus.NOT_MODIFIED);
+        resp.setReasonPhrase(HttpStatus.getReasonPhrase(HttpStatus.NOT_MODIFIED));
+        resp.addHeader("Connection", "close");
+        resp.addHeader("Last-Modified", lastModified);
+        resp.addHeader("Content-Length", "0");
+        return resp;
     }
 
     public StaticFileHandler(Path webRoot) {
@@ -61,6 +78,18 @@ public class StaticFileHandler {
         }
 
         try {
+            // === 304 Not Modified 处理：基于 Last-Modified / If-Modified-Since ===
+            long lastModifiedMillis = file.lastModified();
+            String lastModified = DateTimeFormatter.RFC_1123_DATE_TIME
+                    .withZone(ZoneId.of("GMT"))
+                    .format(Instant.ofEpochMilli(lastModifiedMillis));
+
+            String ifModifiedSince = request.getHeaders().get("If-Modified-Since");
+            if (ifModifiedSince != null && ifModifiedSince.equals(lastModified)) {
+                // 客户端缓存仍然有效，返回 304
+                return buildNotModified(lastModified);
+            }
+
             byte[] content = Files.readAllBytes(target);
             String contentType = MimeType.getMimeType(file.getName());
 
@@ -71,6 +100,7 @@ public class StaticFileHandler {
             resp.addHeader("Content-Type", contentType);
             resp.addHeader("Content-Length", String.valueOf(content.length));
             resp.addHeader("Connection", "close");
+            resp.addHeader("Last-Modified", lastModified);
 
             if (!"HEAD".equalsIgnoreCase(method)) {
                 resp.setBody(content);
