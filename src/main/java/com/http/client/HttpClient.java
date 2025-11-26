@@ -345,8 +345,10 @@ public class HttpClient {
         displayResponse(response);
     }
 
-    public static void main(String[] args) {
-        HttpClient client = new HttpClient("localhost", 6175);
+    public static void main(String[] args) throws UnknownHostException {
+        HttpClient client = new HttpClient("10.6.107.71", 6175);
+        InetAddress localHost = InetAddress.getLocalHost();
+        System.out.println("本机 IP: " + localHost.getHostAddress());
         client.startCommandLineInterface();
     }
 }
