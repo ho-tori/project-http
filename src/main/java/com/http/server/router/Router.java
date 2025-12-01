@@ -2,6 +2,7 @@ package com.http.server.router;
 
 import com.http.common.HttpRequest;
 import com.http.common.HttpResponse;
+import com.http.common.HttpStatus;
 import com.http.server.handler.LoginHandler;
 import com.http.server.handler.RegisterHandler;
 import com.http.server.handler.StaticFileHandler;
@@ -27,9 +28,14 @@ public class Router {
         String uri = request.getUri();
         String method = request.getMethod();
 
-        // 重定向示例 - /old-page 重定向到 /new-page.html
-        if ("/old-page".equals(uri) || "/redirect-test".equals(uri)) {
-            return createRedirectResponse("/new-page.html", 301);
+        // 301 永久重定向示例：/old-page -> /new-page.html
+        if ("/old-page".equals(uri)) {
+            return createRedirectResponse("/new-page.html", HttpStatus.MOVED_PERMANENTLY);
+        }
+
+        // 302 临时重定向示例：/redirect-test -> /new-page.html
+        if ("/redirect-test".equals(uri)) {
+            return createRedirectResponse("/new-page.html", HttpStatus.FOUND);
         }
 
         // API路由 - 支持 /login 和 /api/login 两种格式
@@ -53,7 +59,7 @@ public class Router {
         HttpResponse response = new HttpResponse();
         response.setVersion("HTTP/1.1");
         response.setStatusCode(statusCode);
-        response.setReasonPhrase(statusCode == 301 ? "Moved Permanently" : "Found");
+        response.setReasonPhrase(HttpStatus.getReasonPhrase(statusCode));
         response.addHeader("Location", location);
         response.addHeader("Connection", "close");
         
