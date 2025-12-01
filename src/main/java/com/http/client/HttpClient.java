@@ -6,6 +6,9 @@ import com.http.utils.ConsoleWriter;
 import java.io.*;
 import java.net.*;
 import java.util.Scanner;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * HTTP客户端
@@ -26,55 +29,26 @@ public class HttpClient {
         Socket socket = new Socket(host, port);
 
         try (OutputStream out = socket.getOutputStream();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+             InputStream in = socket.getInputStream()) {
 
-            // 发送请求头部
+            // 发送请求
             StringBuilder headerBuilder = new StringBuilder();
-            headerBuilder.append(request.getMethod()).append(" ").append(request.getUri()).append(" ").append(request.getVersion()).append("\r\n");
-            
-            for (java.util.Map.Entry<String, String> entry : request.getHeaders().entrySet()) {
-                headerBuilder.append(entry.getKey()).append(": ").append(entry.getValue()).append("\r\n");
+            headerBuilder.append(request.getMethod()).append(" ")
+                    .append(request.getUri()).append(" ")
+                    .append(request.getVersion()).append("\r\n");
+
+            for (Map.Entry<String, String> entry : request.getHeaders().entrySet()) {
+                headerBuilder.append(entry.getKey()).append(": ")
+                        .append(entry.getValue()).append("\r\n");
             }
             headerBuilder.append("\r\n");
-            
-            // 发送头部（文本）
+
             out.write(headerBuilder.toString().getBytes("UTF-8"));
-            
-            // 发送请求体（二进制数据）
-            if (request.getBody() != null && request.getBody().length > 0) {
-                out.write(request.getBody());
-            }
-            
+            if (request.getBody() != null) out.write(request.getBody());
             out.flush();
 
-            // 读取响应
-            StringBuilder responseBuilder = new StringBuilder();
-            String line;
-            int contentLength = 0;
-            boolean headerComplete = false;
-
-            // 读取响应头
-            while ((line = reader.readLine()) != null) {
-                responseBuilder.append(line).append("\r\n");
-
-                if (line.toLowerCase().startsWith("content-length:")) {
-                    contentLength = Integer.parseInt(line.split(":")[1].trim());
-                }
-
-                if (line.isEmpty()) {
-                    headerComplete = true;
-                    break;
-                }
-            }
-
-            // 读取响应体
-            if (headerComplete && contentLength > 0) {
-                char[] bodyChars = new char[contentLength];
-                reader.read(bodyChars, 0, contentLength);
-                responseBuilder.append(new String(bodyChars));
-            }
-
-            return HttpResponse.parse(responseBuilder.toString());
+            // 直接解析响应（不要提前读取）
+            return HttpResponse.parse(in);
 
         } finally {
             socket.close();
@@ -288,7 +262,44 @@ public class HttpClient {
     private void handleGetCommand(String uri) throws IOException {
         HttpResponse response = get(uri);
         response = handleRedirect(response, 5);
-        displayResponse(response);
+
+        displayResponse(response); // 先打印响应信息
+
+        // 判断是否是二进制内容（图片/文件）
+        String contentType = response.getHeader("Content-Type");
+        if (contentType != null && !MimeType.isTextType(contentType)) {
+            byte[] body = response.getBody();
+            if (body != null && body.length > 0) {
+                // 根据 URI 和 Content-Type 生成文件名
+                String filename = generateFileName(uri, contentType);
+                saveBinaryFile(body, filename);
+            }
+        }
+    }
+
+    // 保存文件方法
+    private void saveBinaryFile(byte[] data, String fileName) {
+        File dir = new File("downloads/");
+        if (!dir.exists()) dir.mkdirs(); // 确保目录存在
+
+        File file = new File(dir, fileName);
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write(data);
+            System.out.println("文件已保存: " + file.getAbsolutePath());
+        } catch (IOException e) {
+            System.err.println("保存文件失败: " + e.getMessage());
+        }
+    }
+
+    // 根据 URI 或 Content-Type 自动生成文件名
+    private String generateFileName(String uri, String contentType) {
+        String name = uri.substring(uri.lastIndexOf('/') + 1);
+        if (name.isEmpty() || name.contains("?")) {
+            // 如果 URI 没有文件名或者带参数，用时间戳生成
+            String ext = contentType.split("/")[1]; // e.g., png, jpeg
+            name = "downloaded_" + System.currentTimeMillis() + "." + ext;
+        }
+        return name;
     }
 
     private void handlePostCommand(String uri, byte[] body) throws IOException {
@@ -308,8 +319,10 @@ public class HttpClient {
         displayResponse(response);
     }
 
-    public static void main(String[] args) {
-        HttpClient client = new HttpClient("localhost", 6175);
+    public static void main(String[] args) throws UnknownHostException {
+        HttpClient client = new HttpClient("127.0.0.1", 6175);
+        InetAddress localHost = InetAddress.getLocalHost();
+        System.out.println("本机 IP: " + localHost.getHostAddress());
         client.startCommandLineInterface();
     }
 }

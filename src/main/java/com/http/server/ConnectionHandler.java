@@ -29,9 +29,9 @@ public class ConnectionHandler implements Runnable{
         try {
             InputStream input = socket.getInputStream();
             OutputStream output = socket.getOutputStream();
-            
+
             boolean keepAlive = true;
-            
+
             // 支持长连接 - 在一个TCP连接上处理多个HTTP请求
             while (keepAlive) {
                 try {
@@ -45,7 +45,7 @@ public class ConnectionHandler implements Runnable{
 
                     // 3️⃣ 检查是否支持长连接
                     String connection = request.getHeaders().get("Connection");
-                    if ("close".equalsIgnoreCase(connection) || 
+                    if ("close".equalsIgnoreCase(connection) ||
                         "HTTP/1.0".equals(request.getVersion())) {
                         keepAlive = false;
                         response.addHeader("Connection", "close");
@@ -58,14 +58,14 @@ public class ConnectionHandler implements Runnable{
                     // 4️⃣ 发送响应
                     output.write(response.toBytes());
                     output.flush();
-                    
+
                     ConsoleWriter.logServer("响应已发送: " + response.getStatusCode() + " " + response.getReasonPhrase());
-                    
+
                     // 如果是短连接，退出循环
                     if (!keepAlive) {
                         break;
                     }
-                    
+
                 } catch (java.net.SocketTimeoutException e) {
                     ConsoleWriter.logServer("连接超时，关闭长连接");
                     break;
@@ -103,13 +103,13 @@ public class ConnectionHandler implements Runnable{
         response.setVersion("HTTP/1.1");
         response.setStatusCode(500);
         response.setReasonPhrase("Internal Server Error");
-        
+
         String body = "<html><body><h1>500 Internal Server Error</h1><p>The server encountered an unexpected condition.</p></body></html>";
-        response.setBody(body);
+        response.setBody(body.getBytes());
         response.addHeader("Content-Type", "text/html");
         response.addHeader("Content-Length", String.valueOf(body.length()));
         response.addHeader("Connection", "close");
-        
+
         return response;
     }
 }
