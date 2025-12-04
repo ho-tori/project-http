@@ -83,6 +83,23 @@ public class HttpClient {
     }
 
     /**
+     * 发送二进制POST（指定 Content-Type）
+     */
+    public HttpResponse postBinary(String uri, byte[] body, String contentType) throws IOException {
+        if (contentType == null || contentType.trim().isEmpty()) {
+            contentType = "application/octet-stream";
+        }
+        HttpRequest request = new HttpRequest("POST", uri);
+        request.addHeader("Host", host + ":" + port);
+        request.addHeader("User-Agent", "Simple-HTTP-Client/1.0");
+        request.addHeader("Content-Type", contentType);
+        request.addHeader("Content-Length", String.valueOf(body.length));
+        request.addHeader("Connection", "close");
+        request.setBody(body);
+        return sendRequest(request);
+    }
+
+    /**
      * 处理重定向响应
      */
     public HttpResponse handleRedirect(HttpResponse response, int maxRedirects) throws IOException {
@@ -201,6 +218,7 @@ public class HttpClient {
                             String uri = parts[1];
                             String bodyInput = String.join(" ", java.util.Arrays.copyOfRange(parts, 2, parts.length));
                             byte[] bodyBytes = null;
+                            String contentTypeForPost = null;
 
                             java.io.File file = new java.io.File(bodyInput);
                             if (file.exists() && file.isFile()) {
@@ -215,6 +233,15 @@ public class HttpClient {
                                     }
                                     bodyBytes = buffer.toByteArray();
                                     ConsoleWriter.logClient("🌸 检测到文件上传: " + file.getName() + " (" + bodyBytes.length + " bytes)");
+
+                                    // 根据扩展名推断 Content-Type
+                                    String fname = file.getName().toLowerCase();
+                                    if (fname.endsWith(".png")) contentTypeForPost = "image/png";
+                                    else if (fname.endsWith(".jpg") || fname.endsWith(".jpeg")) contentTypeForPost = "image/jpeg";
+                                    else if (fname.endsWith(".html") || fname.endsWith(".htm")) contentTypeForPost = "text/html";
+                                    else if (fname.endsWith(".txt")) contentTypeForPost = "text/plain";
+                                    else if (fname.endsWith(".json")) contentTypeForPost = "application/json";
+                                    else contentTypeForPost = "application/octet-stream";
                                 } catch (Exception e) {
                                     ConsoleWriter.logError("读取文件失败: " + e.getMessage());
                                     break;
@@ -223,9 +250,17 @@ public class HttpClient {
                                 // 🌸 普通文本 POST
                                 bodyBytes = bodyInput.getBytes(java.nio.charset.StandardCharsets.UTF_8);
                                 ConsoleWriter.logClient("🌸 使用文本 POST 请求: " + bodyInput);
+                                contentTypeForPost = "text/plain";
                             }
 
-                            handlePostCommand(uri, bodyBytes);
+                            // 根据内容类型选择POST方法
+                            HttpResponse resp;
+                            if ("application/json".equals(contentTypeForPost)) {
+                                resp = post(uri, bodyBytes);
+                            } else {
+                                resp = postBinary(uri, bodyBytes, contentTypeForPost);
+                            }
+                            displayResponse(resp);
                             break;
 
                         case "REGISTER":
@@ -293,11 +328,35 @@ public class HttpClient {
 
     // 根据 URI 或 Content-Type 自动生成文件名
     private String generateFileName(String uri, String contentType) {
-        String name = uri.substring(uri.lastIndexOf('/') + 1);
-        if (name.isEmpty() || name.contains("?")) {
-            // 如果 URI 没有文件名或者带参数，用时间戳生成
-            String ext = contentType.split("/")[1]; // e.g., png, jpeg
+        // 1) 规范化 Content-Type（去掉参数部分，例如 charset）
+        String normalized = contentType == null ? "application/octet-stream" : contentType.split(";", 2)[0].trim().toLowerCase();
+
+        // 2) MIME → 扩展名映射（与服务端 MimeType 保持一致并补充常用类型）
+        java.util.Map<String, String> mimeToExt = new java.util.HashMap<>();
+        mimeToExt.put("text/html", "html");
+        mimeToExt.put("text/plain", "txt");
+        mimeToExt.put("image/png", "png");
+        mimeToExt.put("image/jpeg", "jpg");
+        mimeToExt.put("application/json", "json");
+        mimeToExt.put("application/xml", "xml");
+        mimeToExt.put("application/octet-stream", "bin");
+
+        String ext = mimeToExt.getOrDefault(normalized, "bin");
+
+        // 3) 从 URI 提取文件名（含扩展名），若没有则生成
+        String raw = uri;
+        int q = raw.indexOf('?');
+        if (q >= 0) raw = raw.substring(0, q);
+        String name = raw.substring(raw.lastIndexOf('/') + 1);
+
+        if (name.isEmpty()) {
             name = "downloaded_" + System.currentTimeMillis() + "." + ext;
+        } else {
+            // 如果原始名没有扩展名，补充一个
+            int dot = name.lastIndexOf('.');
+            if (dot < 0 || dot == name.length() - 1) {
+                name = name + "." + ext;
+            }
         }
         return name;
     }

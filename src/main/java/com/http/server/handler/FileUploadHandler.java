@@ -3,6 +3,7 @@ package com.http.server.handler;
 import com.http.common.HttpRequest;
 import com.http.common.HttpResponse;
 import com.http.common.HttpStatus;
+import com.http.common.MimeType;
 
 
 import java.io.File;
@@ -115,18 +116,33 @@ public class FileUploadHandler {
             }
         }
         
-        // 然后检查Content-Type头（仅对明确的图片类型）
+        // 然后检查 Content-Type 头，优先按 MimeType 规则处理
         String contentType = request.getHeaders().get("Content-Type");
         if (contentType != null) {
-            if (contentType.contains("image/jpeg") || contentType.contains("image/jpg")) {
+            String ct = contentType.toLowerCase();
+            // 已知类型映射（与 MimeType 支持一致）
+            if (ct.contains("text/html")) {
+                return ".html";
+            }
+            if (ct.contains("image/jpeg") || ct.contains("image/jpg")) {
                 return ".jpg";
-            } else if (contentType.contains("image/png")) {
+            }
+            if (ct.contains("image/png")) {
                 return ".png";
+            }
+            // 其他文本类型统一按 .txt（MimeType.isTextType 判断）
+            if (MimeType.isTextType(ct)) {
+                return ".txt";
             }
         }
         
         // 最后检查是否为文本内容
         if (isTextContent(body)) {
+            // 基于内容特征判断是否为 HTML
+            String head = new String(body, 0, Math.min(body.length, 4096), StandardCharsets.UTF_8).toLowerCase();
+            if (head.contains("<html") || head.contains("<!doctype html")) {
+                return ".html";
+            }
             return ".txt";
         }
         
