@@ -46,7 +46,6 @@ public class HttpRequest {
     public HttpRequest(InputStream inputStream) throws IOException {
         this.headers = new HashMap<>();
 
-        // 完全避免BufferedReader，手动解析HTTP头部
         java.io.ByteArrayOutputStream headerBuffer = new java.io.ByteArrayOutputStream();
         byte[] buffer = new byte[1];
         boolean foundHeaderEnd = false;
