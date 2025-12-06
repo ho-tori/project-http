@@ -99,7 +99,6 @@ public class HttpClient {
         return resp;
     }
 
-    // 已移除 HEAD 与 GETIFMOD：GET 默认携带缓存并更新 Last-Modified
 
     private String normalizeUri(String uri) {
         if (uri == null) return "/";
