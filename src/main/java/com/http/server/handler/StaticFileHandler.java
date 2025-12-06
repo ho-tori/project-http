@@ -85,9 +85,24 @@ public class StaticFileHandler {
                     .format(Instant.ofEpochMilli(lastModifiedMillis));
 
             String ifModifiedSince = request.getHeaders().get("If-Modified-Since");
-            if (ifModifiedSince != null && ifModifiedSince.equals(lastModified)) {
-                // 客户端缓存仍然有效，返回 304
-                return buildNotModified(lastModified);
+            if (ifModifiedSince != null) {
+                try {
+                    // 解析 RFC 1123 日期并按秒比较（避免毫秒级差异导致误判）
+                    Instant ifModInstant = DateTimeFormatter.RFC_1123_DATE_TIME
+                            .withZone(ZoneId.of("GMT"))
+                            .parse(ifModifiedSince, java.time.ZonedDateTime::from)
+                            .toInstant();
+
+                    long ifModSeconds = ifModInstant.getEpochSecond();
+                    long lastModSeconds = lastModifiedMillis / 1000;
+
+                    if (ifModSeconds >= lastModSeconds) {
+                        // 客户端缓存仍然有效，返回 304
+                        return buildNotModified(lastModified);
+                    }
+                } catch (Exception ignored) {
+                    // 无法解析 If-Modified-Since，按正常 200 流程返回
+                }
             }
 
             byte[] content = Files.readAllBytes(target);

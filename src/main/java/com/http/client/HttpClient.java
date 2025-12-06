@@ -6,8 +6,7 @@ import com.http.utils.ConsoleWriter;
 import java.io.*;
 import java.net.*;
 import java.util.Scanner;
-import java.util.ArrayList;
-import java.util.List;
+// 移除未使用的导入
 import java.util.Map;
 
 /**
@@ -20,6 +19,8 @@ public class HttpClient {
     private Socket persistentSocket;
     // 全局开关：是否启用长连接（默认开启）
     private boolean enableKeepAlive = true;
+    // 简易缓存：记录每个 URI 的 Last-Modified
+    private final java.util.Map<String, String> lastModifiedCache = new java.util.HashMap<>();
 
     public HttpClient(String host, int port) {
         this.host = host;
@@ -82,8 +83,30 @@ public class HttpClient {
         request.addHeader("Host", host + ":" + port);
         request.addHeader("User-Agent", "Simple-HTTP-Client/1.0");
         request.addHeader("Connection", enableKeepAlive ? "keep-alive" : "close");
+        // 默认：若有缓存则携带 If-Modified-Since
+        String cached = lastModifiedCache.get(normalizeUri(uri));
+        if (cached != null) {
+            request.addHeader("If-Modified-Since", cached);
+        }
+        HttpResponse resp = sendRequest(request);
+        // 收到 200 刷新缓存；304 保留旧缓存
+        if (resp.getStatusCode() == HttpStatus.OK) {
+            String lm = resp.getHeader("Last-Modified");
+            if (lm != null) {
+                lastModifiedCache.put(normalizeUri(uri), lm);
+            }
+        }
+        return resp;
+    }
 
-        return sendRequest(request);
+    // 已移除 HEAD 与 GETIFMOD：GET 默认携带缓存并更新 Last-Modified
+
+    private String normalizeUri(String uri) {
+        if (uri == null) return "/";
+        int q = uri.indexOf('?');
+        if (q >= 0) uri = uri.substring(0, q);
+        if (uri.isEmpty()) uri = "/";
+        return uri;
     }
 
     /**
@@ -407,10 +430,6 @@ public class HttpClient {
         return name;
     }
 
-    private void handlePostCommand(String uri, byte[] body) throws IOException {
-        HttpResponse response = post(uri, body);
-        displayResponse(response);
-    }
 
     private void handleRegisterCommand(String username, String password) throws IOException {
         String body = "{\"username\": \"" + username + "\", \"password\": \"" + password + "\"}";
