@@ -16,6 +16,8 @@ import java.util.Map;
 public class HttpClient {
     private String host;
     private int port;
+    // 复用同一个 Socket 以支持长连接
+    private Socket persistentSocket;
 
     public HttpClient(String host, int port) {
         this.host = host;
@@ -26,10 +28,15 @@ public class HttpClient {
      * 发送HTTP请求
      */
     public HttpResponse sendRequest(HttpRequest request) throws IOException {
-        Socket socket = new Socket(host, port);
+        // 若没有连接或已关闭，建立一次新的连接
+        if (persistentSocket == null || persistentSocket.isClosed()) {
+            persistentSocket = new Socket(host, port);
+            // 设置读取超时，避免服务端长时间不返回导致阻塞
+            try { persistentSocket.setSoTimeout(30_000); } catch (SocketException ignored) {}
+        }
 
-        try (OutputStream out = socket.getOutputStream();
-             InputStream in = socket.getInputStream()) {
+        OutputStream out = persistentSocket.getOutputStream();
+        InputStream in = persistentSocket.getInputStream();
 
             // 发送请求
             StringBuilder headerBuilder = new StringBuilder();
@@ -48,11 +55,15 @@ public class HttpClient {
             out.flush();
 
             // 直接解析响应（不要提前读取）
-            return HttpResponse.parse(in);
+            HttpResponse resp = HttpResponse.parse(in);
 
-        } finally {
-            socket.close();
-        }
+            // 如果服务端指示关闭，则本端也关闭连接
+            String conn = resp.getHeader("Connection");
+            if (conn != null && conn.equalsIgnoreCase("close")) {
+                try { persistentSocket.close(); } catch (IOException ignored) {}
+                persistentSocket = null;
+            }
+            return resp;
     }
 
     /**
@@ -62,7 +73,7 @@ public class HttpClient {
         HttpRequest request = new HttpRequest("GET", uri);
         request.addHeader("Host", host + ":" + port);
         request.addHeader("User-Agent", "Simple-HTTP-Client/1.0");
-        request.addHeader("Connection", "close");
+        request.addHeader("Connection", "keep-alive");
 
         return sendRequest(request);
     }
@@ -76,7 +87,7 @@ public class HttpClient {
         request.addHeader("User-Agent", "Simple-HTTP-Client/1.0");
         request.addHeader("Content-Type", "application/json");
         request.addHeader("Content-Length", String.valueOf(body.length));
-        request.addHeader("Connection", "close");
+        request.addHeader("Connection", "keep-alive");
         request.setBody(body);
 
         return sendRequest(request);
@@ -94,7 +105,7 @@ public class HttpClient {
         request.addHeader("User-Agent", "Simple-HTTP-Client/1.0");
         request.addHeader("Content-Type", contentType);
         request.addHeader("Content-Length", String.valueOf(body.length));
-        request.addHeader("Connection", "close");
+        request.addHeader("Connection", "keep-alive");
         request.setBody(body);
         return sendRequest(request);
     }
@@ -123,7 +134,7 @@ public class HttpClient {
                 HttpRequest redirectRequest = new HttpRequest("GET", location);
                 redirectRequest.addHeader("Host", host + ":" + port);
                 redirectRequest.addHeader("User-Agent", "Simple-HTTP-Client/1.0");
-                redirectRequest.addHeader("Connection", "close");
+                redirectRequest.addHeader("Connection", "keep-alive");
 
                 currentResponse = sendRequest(redirectRequest);
                 redirectCount++;
@@ -281,6 +292,11 @@ public class HttpClient {
 
                         case "QUIT":
                             ConsoleWriter.logClient("再见！");
+                            // 退出时关闭持久连接
+                            if (persistentSocket != null && !persistentSocket.isClosed()) {
+                                try { persistentSocket.close(); } catch (IOException ignored) {}
+                                persistentSocket = null;
+                            }
                             return;
 
                         default:

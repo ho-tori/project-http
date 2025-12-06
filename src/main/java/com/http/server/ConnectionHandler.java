@@ -29,7 +29,8 @@ public class ConnectionHandler implements Runnable{
         try {
             InputStream input = socket.getInputStream();
             OutputStream output = socket.getOutputStream();
-
+            // int[] arr = new int[1];
+            // System.out.println(arr[10]); // 故意制造数组越界异常，测试500错误处理
             boolean keepAlive = true;
 
             // 支持长连接 - 在一个TCP连接上处理多个HTTP请求

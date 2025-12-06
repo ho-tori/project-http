@@ -39,8 +39,9 @@ public class Router {
         }
 
         // API路由 - 支持 /login 和 /api/login 两种格式
-        if (("/login".equals(uri) || "/api/login".equals(uri)) && "POST".equalsIgnoreCase(method)) {
+        if (("/login".equals(uri) || "/api/login".equals(uri)) ) {
             return loginHandler.handle(request);
+            //
         } else if (("/register".equals(uri) || "/api/register".equals(uri)) && "POST".equalsIgnoreCase(method)) {
             return registerHandler.handle(request);
         } else if (("/upload".equals(uri) || "/api/upload".equals(uri)) && "POST".equalsIgnoreCase(method)) {
