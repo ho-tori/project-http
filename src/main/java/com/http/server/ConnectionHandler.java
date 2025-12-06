@@ -32,6 +32,8 @@ public class ConnectionHandler implements Runnable{
             // int[] arr = new int[1];
             // System.out.println(arr[10]); // 故意制造数组越界异常，测试500错误处理
             boolean keepAlive = true;
+            // 为长连接设置读取超时，避免连接无限期挂起
+            try { socket.setSoTimeout(30_000); } catch (SocketException ignored) {}
 
             // 支持长连接 - 在一个TCP连接上处理多个HTTP请求
             while (keepAlive) {
@@ -44,16 +46,29 @@ public class ConnectionHandler implements Runnable{
                     // 2️⃣ 使用Router路由请求到对应的Handler
                     HttpResponse response = router.route(request);
 
-                    // 3️⃣ 检查是否支持长连接
+                    // 3️⃣ 按请求版本与头部决定是否长连接
                     String connection = request.getHeaders().get("Connection");
-                    if ("close".equalsIgnoreCase(connection) ||
-                        "HTTP/1.0".equals(request.getVersion())) {
-                        keepAlive = false;
-                        response.addHeader("Connection", "close");
+                    String version = request.getVersion();
+                    if ("HTTP/1.1".equalsIgnoreCase(version)) {
+                        // HTTP/1.1 默认长连接，除非明确要求关闭
+                        if ("close".equalsIgnoreCase(connection)) {
+                            keepAlive = false;
+                            response.addHeader("Connection", "close");
+                        } else {
+                            keepAlive = true;
+                            response.addHeader("Connection", "keep-alive");
+                            response.addHeader("Keep-Alive", "timeout=30, max=100");
+                        }
                     } else {
-                        // HTTP/1.1 默认支持长连接
-                        response.addHeader("Connection", "keep-alive");
-                        response.addHeader("Keep-Alive", "timeout=30, max=100");
+                        // HTTP/1.0 默认短连接，只有显式 keep-alive 才保持
+                        if (connection != null && connection.equalsIgnoreCase("keep-alive")) {
+                            keepAlive = true;
+                            response.addHeader("Connection", "keep-alive");
+                            response.addHeader("Keep-Alive", "timeout=30, max=100");
+                        } else {
+                            keepAlive = false;
+                            response.addHeader("Connection", "close");
+                        }
                     }
 
                     // 4️⃣ 发送响应

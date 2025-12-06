@@ -18,6 +18,8 @@ public class HttpClient {
     private int port;
     // 复用同一个 Socket 以支持长连接
     private Socket persistentSocket;
+    // 全局开关：是否启用长连接（默认开启）
+    private boolean enableKeepAlive = true;
 
     public HttpClient(String host, int port) {
         this.host = host;
@@ -29,14 +31,15 @@ public class HttpClient {
      */
     public HttpResponse sendRequest(HttpRequest request) throws IOException {
         // 若没有连接或已关闭，建立一次新的连接
-        if (persistentSocket == null || persistentSocket.isClosed()) {
+        if (enableKeepAlive && (persistentSocket == null || persistentSocket.isClosed())) {
             persistentSocket = new Socket(host, port);
             // 设置读取超时，避免服务端长时间不返回导致阻塞
             try { persistentSocket.setSoTimeout(30_000); } catch (SocketException ignored) {}
         }
-
-        OutputStream out = persistentSocket.getOutputStream();
-        InputStream in = persistentSocket.getInputStream();
+        // 根据开关决定使用持久连接还是临时连接
+        Socket socketToUse = enableKeepAlive ? persistentSocket : new Socket(host, port);
+        OutputStream out = socketToUse.getOutputStream();
+        InputStream in = socketToUse.getInputStream();
 
             // 发送请求
             StringBuilder headerBuilder = new StringBuilder();
@@ -59,9 +62,14 @@ public class HttpClient {
 
             // 如果服务端指示关闭，则本端也关闭连接
             String conn = resp.getHeader("Connection");
-            if (conn != null && conn.equalsIgnoreCase("close")) {
-                try { persistentSocket.close(); } catch (IOException ignored) {}
+            if (enableKeepAlive && conn != null && conn.equalsIgnoreCase("close")) {
+                try { if (persistentSocket != null) persistentSocket.close(); } catch (IOException ignored) {}
                 persistentSocket = null;
+            }
+
+            // 若不开启长连接，则每次请求完立即关闭临时连接
+            if (!enableKeepAlive) {
+                try { socketToUse.close(); } catch (IOException ignored) {}
             }
             return resp;
     }
@@ -73,7 +81,7 @@ public class HttpClient {
         HttpRequest request = new HttpRequest("GET", uri);
         request.addHeader("Host", host + ":" + port);
         request.addHeader("User-Agent", "Simple-HTTP-Client/1.0");
-        request.addHeader("Connection", "keep-alive");
+        request.addHeader("Connection", enableKeepAlive ? "keep-alive" : "close");
 
         return sendRequest(request);
     }
@@ -87,7 +95,7 @@ public class HttpClient {
         request.addHeader("User-Agent", "Simple-HTTP-Client/1.0");
         request.addHeader("Content-Type", "application/json");
         request.addHeader("Content-Length", String.valueOf(body.length));
-        request.addHeader("Connection", "keep-alive");
+        request.addHeader("Connection", enableKeepAlive ? "keep-alive" : "close");
         request.setBody(body);
 
         return sendRequest(request);
@@ -105,7 +113,7 @@ public class HttpClient {
         request.addHeader("User-Agent", "Simple-HTTP-Client/1.0");
         request.addHeader("Content-Type", contentType);
         request.addHeader("Content-Length", String.valueOf(body.length));
-        request.addHeader("Connection", "keep-alive");
+        request.addHeader("Connection", enableKeepAlive ? "keep-alive" : "close");
         request.setBody(body);
         return sendRequest(request);
     }
@@ -134,7 +142,7 @@ public class HttpClient {
                 HttpRequest redirectRequest = new HttpRequest("GET", location);
                 redirectRequest.addHeader("Host", host + ":" + port);
                 redirectRequest.addHeader("User-Agent", "Simple-HTTP-Client/1.0");
-                redirectRequest.addHeader("Connection", "keep-alive");
+                redirectRequest.addHeader("Connection", enableKeepAlive ? "keep-alive" : "close");
 
                 currentResponse = sendRequest(redirectRequest);
                 redirectCount++;
@@ -197,6 +205,7 @@ public class HttpClient {
             ConsoleWriter.logClient("  REGISTER <username> <password>   - 用户注册");
             ConsoleWriter.logClient("  LOGIN <username> <password>      - 用户登录");
             ConsoleWriter.logClient("  QUIT                             - 退出客户端");
+            ConsoleWriter.logClient("  KEEPALIVE <on|off>               - 开启/关闭长连接");
             ConsoleWriter.logClient(""); // 打印一个空行
 
             while (true) {
@@ -299,6 +308,27 @@ public class HttpClient {
                             }
                             return;
 
+                        case "KEEPALIVE":
+                            if (parts.length < 2) {
+                                ConsoleWriter.logError("用法: KEEPALIVE <on|off>");
+                                break;
+                            }
+                            String opt = parts[1].toLowerCase();
+                            if ("on".equals(opt)) {
+                                enableKeepAlive = true;
+                                ConsoleWriter.logClient("已开启长连接模式");
+                            } else if ("off".equals(opt)) {
+                                enableKeepAlive = false;
+                                ConsoleWriter.logClient("已关闭长连接模式（每次请求独立连接）");
+                                if (persistentSocket != null && !persistentSocket.isClosed()) {
+                                    try { persistentSocket.close(); } catch (IOException ignored) {}
+                                    persistentSocket = null;
+                                }
+                            } else {
+                                ConsoleWriter.logError("参数错误，应为 on 或 off");
+                            }
+                            break;
+
                         default:
                             ConsoleWriter.logError("未知命令: " + command);
                             break;
@@ -399,5 +429,14 @@ public class HttpClient {
         InetAddress localHost = InetAddress.getLocalHost();
         System.out.println("本机 IP: " + localHost.getHostAddress());
         client.startCommandLineInterface();
+    }
+
+    // 允许外部（如 GUI）动态切换是否启用长连接
+    public void setEnableKeepAlive(boolean enable) {
+        this.enableKeepAlive = enable;
+        if (!enable && persistentSocket != null && !persistentSocket.isClosed()) {
+            try { persistentSocket.close(); } catch (IOException ignored) {}
+            persistentSocket = null;
+        }
     }
 }

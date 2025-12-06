@@ -26,6 +26,11 @@ public class HttpClientGUI extends JFrame {
     // 连接信息
     private JTextField hostField;
     private JTextField portField;
+    private JCheckBox keepAliveBox;
+    // 复用同一个客户端以便复用底层 Socket
+    private HttpClient sharedClient;
+    private String lastHost;
+    private int lastPort;
 
     // 通用请求信息
     private JTextField uriField;
@@ -91,6 +96,11 @@ public class HttpClientGUI extends JFrame {
         JButton connectTestBtn = createCuteButton("测试连接 (GET /) ♡", accent, accentDark, Color.WHITE);
         connectTestBtn.addActionListener(this::onTestConnection);
         topPanel.add(connectTestBtn);
+
+        keepAliveBox = new JCheckBox("长连接 (keep-alive)", true);
+        keepAliveBox.setBackground(bgCard);
+        keepAliveBox.setForeground(textMain);
+        topPanel.add(keepAliveBox);
 
         content.add(topPanel, BorderLayout.NORTH);
 
@@ -245,7 +255,15 @@ public class HttpClientGUI extends JFrame {
     private HttpClient createClient() throws NumberFormatException {
         String host = hostField.getText().trim();
         int port = Integer.parseInt(portField.getText().trim());
-        return new HttpClient(host, port);
+        boolean needNew = (sharedClient == null) || (lastHost == null) || (!host.equals(lastHost)) || (port != lastPort);
+        if (needNew) {
+            sharedClient = new HttpClient(host, port);
+            lastHost = host;
+            lastPort = port;
+        }
+        // 根据勾选状态设置是否启用长连接（会在关闭时清理旧的持久连接）
+        sharedClient.setEnableKeepAlive(keepAliveBox.isSelected());
+        return sharedClient;
     }
 
     private void appendResponseText(String text) {
@@ -331,7 +349,8 @@ public class HttpClientGUI extends JFrame {
                 try {
                     HttpClient client = createClient();
                     byte[] bytes = finalBody.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-                    HttpResponse response = client.post(uri, bytes);
+                    // 文本使用 text/plain，避免误设为 application/json
+                    HttpResponse response = client.postBinary(uri, bytes, "text/plain");
                     displayResponseAndMaybeSave(response, uri);
                     setStatus("POST 文本请求完成");
                 } catch (Exception ex) {
@@ -390,7 +409,17 @@ public class HttpClientGUI extends JFrame {
                     byte[] bodyBytes = buffer.toByteArray();
 
                     HttpClient client = createClient();
-                    HttpResponse response = client.post(uri, bodyBytes);
+                    // 根据扩展名推断 Content-Type
+                    String fname = file.getName().toLowerCase();
+                    String ct;
+                    if (fname.endsWith(".png")) ct = "image/png";
+                    else if (fname.endsWith(".jpg") || fname.endsWith(".jpeg")) ct = "image/jpeg";
+                    else if (fname.endsWith(".html") || fname.endsWith(".htm")) ct = "text/html";
+                    else if (fname.endsWith(".txt")) ct = "text/plain";
+                    else if (fname.endsWith(".json")) ct = "application/json";
+                    else ct = "application/octet-stream";
+
+                    HttpResponse response = client.postBinary(uri, bodyBytes, ct);
                     displayResponseAndMaybeSave(response, uri);
                     setStatus("文件上传完成");
                 } catch (Exception ex) {
